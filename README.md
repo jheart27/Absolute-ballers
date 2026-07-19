@@ -10,11 +10,26 @@ Built with **Godot 4.3+** and GDScript. No third-party addons required.
 ## Running it
 
 1. Open the project folder in Godot 4.3 or newer (first open imports the
-   placeholder PNGs — let it finish).
-2. Press F5. Boot -> main menu -> EXHIBITION or TOURNAMENT.
+   placeholder PNGs/WAVs — let the import finish before playing).
+2. Press F5. Boot -> main menu -> EXHIBITION, TOURNAMENT, or WATCH DEMO
+   (AI vs AI attract mode — a quick way to verify everything works).
 
-All current art is generated programmer art (see below) — final AI-generated
-pixel-art sheets drop in without code changes.
+All current art and audio is generated programmer placeholder content —
+final AI-generated pixel-art sheets and real sound design drop in without
+code changes.
+
+### If the game doesn't load
+
+- Check the **Output** and **Debugger > Errors** panels — script errors and
+  missing-asset messages land there, and `Art`/`AudioManager` log the exact
+  paths they could not load (missing textures render magenta instead of
+  crashing).
+- First open must finish **importing** (progress bar in the editor) before
+  F5; if you played too early, close the game, wait, and run again.
+- If scripts show "could not resolve class" errors on a fresh clone, use
+  Project > Reload Current Project once so the script class cache rebuilds.
+- Still stuck: copy the first few red lines from the Output panel into the
+  session — the exact text pinpoints the file.
 
 ## Controls
 
@@ -64,12 +79,14 @@ scripts/
 tools/                generate_placeholders.py (regenerates all art)
 ```
 
-## Placeholder art pipeline
+## Placeholder art + audio pipeline
 
 `python3 tools/generate_placeholders.py` (needs Pillow) regenerates every
-sprite. The character sheet contract (frame size, row order, frame counts)
-lives in `scripts/match/baller_anim.gd` and `docs/ASSET_PIPELINE.md` —
-final art that follows it is a drop-in replacement.
+sprite; `python3 tools/generate_audio.py` (no deps) regenerates every sound
+effect. The character sheet contract (frame size, row order, frame counts)
+lives in `scripts/match/baller_anim.gd` and `docs/ASSET_PIPELINE.md`; sound
+filenames in `assets/placeholder/audio/` are the audio contract — final
+assets that follow them are drop-in replacements.
 
 ## Roadmap
 
@@ -80,6 +97,9 @@ final art that follows it is a drop-in replacement.
 5. ~~Local multiplayer (multi-gamepad lobby)~~ ✅
 6. ~~Tournament bracket~~ ✅
 7. ~~Steam scaffolding (stubs)~~ ✅
-8. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
-   in `docs/ONLINE_MULTIPLAYER.md`; sound + music pass; real art drop-in;
-   polish (tip-off, half-court switch, goaltend swats mid-flight).
+8. ~~Arcade juice: SFX, tip-off jump ball, camera shake, gamepad rumble,
+   flaming ball FX, box score, demo mode~~ ✅
+9. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
+   in `docs/ONLINE_MULTIPLAYER.md`; music pass + real sound design; real
+   art drop-in; polish (half-court side switch, goaltend swats mid-flight,
+   alley-oops).

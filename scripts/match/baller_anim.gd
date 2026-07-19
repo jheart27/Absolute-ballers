@@ -26,7 +26,7 @@ const ROWS: Array = [
 static func build_frames(sheet_path: String) -> SpriteFrames:
 	## Builds a SpriteFrames from any sheet that follows the contract.
 	## This is the ONLY place frame regions are computed.
-	var tex: Texture2D = load(sheet_path)
+	var tex: Texture2D = Art.tex(sheet_path)
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
 	for row_i in ROWS.size():
@@ -46,7 +46,7 @@ static func build_frames(sheet_path: String) -> SpriteFrames:
 
 static func build_simple_strip(sheet_path: String, frame_w: int, fps: float) -> SpriteFrames:
 	## For single-row FX strips (ball spin, fire aura).
-	var tex: Texture2D = load(sheet_path)
+	var tex: Texture2D = Art.tex(sheet_path)
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
 	frames.add_animation("loop")

@@ -158,6 +158,23 @@ func show_end_panel(winner: int) -> void:
 				mvp.char_def.display_name.to_upper(),
 				int(st.player_points.get(mvp, 0))],
 			26, Color(1.0, 0.85, 0.3)))
+	# box score
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 48)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_child(box)
+	for t in 2:
+		var col := VBoxContainer.new()
+		box.add_child(col)
+		var box_td: TeamDef = match_scene.config.team_defs[t]
+		col.add_child(_make_label(box_td.team_name.to_upper(), 18, box_td.primary_color))
+		for b in match_scene.team_ballers[t]:
+			col.add_child(_make_label(
+				"%s%s  %d PTS" % [
+					b.char_def.display_name,
+					"*" if b.is_human() else "",
+					int(st.player_points.get(b, 0))],
+				15, Color(0.85, 0.85, 0.95)))
 	var btn := _make_button("CONTINUE", func() -> void: Game.finish_match(winner))
 	v.add_child(btn)
 	btn.grab_focus()

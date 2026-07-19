@@ -27,7 +27,10 @@ var _pause_prev := {}
 
 
 func _ready() -> void:
-	config = Game.pending_match if Game.pending_match != null else MatchConfig.quick_default()
+	config = Game.pending_match
+	if config == null:
+		config = MatchConfig.quick_default(
+			Game.settings, Game.teams, Game.character_list())
 	settings = config.settings
 	rng.randomize()
 	_build_court()
@@ -41,13 +44,16 @@ func _ready() -> void:
 	hud = MatchHUD.new()
 	hud.match_scene = self
 	add_child(hud)
-	_reset_formation(0)
+	_reset_formation(0, true)  # quarter 1 opens with a jump-ball toss
 	EventBus.steal_made.connect(_on_steal_made)
 	EventBus.knockdown.connect(_on_knockdown)
 	EventBus.quarter_started.emit(1)
+	EventBus.announce.emit("TIP-OFF!", 0)
+	AudioManager.start_ambient()
 
 
 func _exit_tree() -> void:
+	AudioManager.stop_ambient()
 	if EventBus.steal_made.is_connected(_on_steal_made):
 		EventBus.steal_made.disconnect(_on_steal_made)
 	if EventBus.knockdown.is_connected(_on_knockdown):
@@ -59,13 +65,21 @@ func _on_steal_made(_stealer, _victim) -> void:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.STEAL, rng), 1)
 
 
-func _on_knockdown(_victim) -> void:
+func _on_knockdown(victim) -> void:
 	EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.KNOCKDOWN, rng), 1)
+	cam.add_shake(10.0)
+	_rumble(victim, 0.8, 0.9, 0.4)
+
+
+func _rumble(baller, weak: float, strong: float, duration: float) -> void:
+	if baller != null and baller.controller is HumanInput \
+			and baller.controller.device >= 0:
+		Input.start_joy_vibration(baller.controller.device, weak, strong, duration)
 
 
 func _build_court() -> void:
 	var floor_sprite := Sprite2D.new()
-	floor_sprite.texture = load("res://assets/placeholder/court/court_full.png")
+	floor_sprite.texture = Art.tex("res://assets/placeholder/court/court_full.png")
 	add_child(floor_sprite)
 	_stage = Node2D.new()
 	_stage.name = "Stage"
@@ -89,7 +103,11 @@ func _build_teams() -> void:
 		for char_def in config.rosters[t]:
 			var b := Baller.new()
 			_stage.add_child(b)
-			b.setup(char_def, t, team_def.primary_color, self)
+			b.setup(char_def, t, self)
+			var vis := BallerVisual.new()
+			b.add_child(vis)
+			vis.setup(b, team_def.primary_color)
+			b.visual = vis
 			b.ai_controller = AIInput.new(b, team_ai)
 			b.controller = b.ai_controller
 			team_ballers[t].append(b)
@@ -101,7 +119,7 @@ func _build_teams() -> void:
 		b.controller = h
 
 
-func _reset_formation(possession_team: int) -> void:
+func _reset_formation(possession_team: int, tip := false) -> void:
 	for t in 2:
 		var side := -1.0 if t == 0 else 1.0  # team 0 starts on the left half
 		var n: int = team_ballers[t].size()
@@ -109,7 +127,10 @@ func _reset_formation(possession_team: int) -> void:
 			team_ballers[t][i].reset_for_tip(Vector2(
 				side * (140.0 + 130.0 * i),
 				(i - (n - 1) * 0.5) * 150.0))
-	ball.give_to(team_ballers[possession_team][0])
+	if tip:
+		ball.tip_toss()  # live scramble — nearest ballers fight for it
+	else:
+		ball.give_to(team_ballers[possession_team][0])
 
 
 # -------------------------------------------------------------------- loop
@@ -171,12 +192,14 @@ func _end_quarter() -> void:
 			state.phase = MatchState.Phase.OVERTIME
 			EventBus.overtime_started.emit()
 			EventBus.announce.emit("OVERTIME! NEXT BUCKET WINS!", 2)
-			_reset_formation(rng.randi() % 2)
+			AudioManager.play("buzzer", -4.0)
+			_reset_formation(rng.randi() % 2, true)
 		else:
 			_end_match()
 	else:
 		state.phase = MatchState.Phase.QUARTER_BREAK
 		_break_t = 2.2
+		AudioManager.play("buzzer", -4.0)
 		hud.show_banner("QUARTER %d" % (state.quarter + 1))
 
 
@@ -233,6 +256,8 @@ func request_shot(shooter, quality: float) -> void:
 	if result.blocked:
 		EventBus.shot_blocked.emit(result.blocker, shooter)
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.BLOCK, rng), 2)
+		cam.add_shake(8.0)
+		_rumble(shooter, 0.3, 0.5, 0.25)
 		var away_from_hoop := Vector2(
 			-signf(CourtGeometry.hoop_pos(shooter.team).x),
 			rng.randf_range(-0.6, 0.6))
@@ -250,6 +275,7 @@ func request_pass(passer, intent: PlayerIntent) -> void:
 	if settings.auto_switch_on_pass and passer.controller is HumanInput:
 		_auto_switch_from = passer
 	ball.launch_pass(passer, target)
+	AudioManager.play("pass", -12.0)
 
 
 func on_pass_caught(receiver) -> void:
@@ -295,6 +321,8 @@ func score_basket(team: int, points: int, scorer, was_dunk: bool) -> void:
 	EventBus.score_changed.emit(state.scores)
 	if was_dunk:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.DUNK, rng), 2)
+		cam.add_shake(14.0)
+		_rumble(scorer, 0.4, 0.7, 0.3)
 	elif points == 3:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.THREE, rng), 1)
 	elif rng.randf() < 0.35:
@@ -307,6 +335,8 @@ func score_basket(team: int, points: int, scorer, was_dunk: bool) -> void:
 		EventBus.fire_changed.emit(b, true)
 		EventBus.announce.emit(
 			"%s IS ON FIRE!" % b.char_def.display_name.to_upper(), 2)
+		cam.add_shake(6.0)
+		_rumble(b, 0.2, 0.4, 0.5)
 	for b in fire_ev.douse:
 		b.on_fire = false
 		EventBus.fire_changed.emit(b, false)

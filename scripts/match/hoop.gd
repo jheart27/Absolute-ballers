@@ -18,7 +18,7 @@ func setup(team_attacking: int) -> void:
 	position = CourtGeometry.hoop_pos(team_attacking)
 	name = "Hoop_%d" % team_attacking
 	_sprite = Sprite2D.new()
-	_sprite.texture = load("res://assets/placeholder/court/hoop.png")
+	_sprite.texture = Art.tex("res://assets/placeholder/court/hoop.png")
 	_sprite.centered = false
 	if position.x > 0.0:
 		_sprite.flip_h = true

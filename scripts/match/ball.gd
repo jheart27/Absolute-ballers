@@ -35,17 +35,33 @@ var pass_team := 0
 var _pass_rolled: Array = []  # opponents who already had their interception roll
 
 var _spin_t := 0.0
+var _held_prev_z := 0.0
 var _sprite: AnimatedSprite2D
 var _shadow: Sprite2D
+var _embers: CPUParticles2D
 
 
 func setup(match_ref) -> void:
 	match_scene = match_ref
 	name = "Ball"
 	_shadow = Sprite2D.new()
-	_shadow.texture = load("res://assets/placeholder/fx/shadow.png")
+	_shadow.texture = Art.tex("res://assets/placeholder/fx/shadow.png")
 	_shadow.scale = Vector2(0.6, 0.6)
 	add_child(_shadow)
+	_embers = CPUParticles2D.new()
+	_embers.emitting = false
+	_embers.amount = 26
+	_embers.lifetime = 0.5
+	_embers.local_coords = false
+	_embers.direction = Vector2(0.0, -1.0)
+	_embers.spread = 180.0
+	_embers.initial_velocity_min = 20.0
+	_embers.initial_velocity_max = 70.0
+	_embers.gravity = Vector2(0.0, -40.0)
+	_embers.scale_amount_min = 2.0
+	_embers.scale_amount_max = 4.0
+	_embers.color = Color(1.0, 0.55, 0.1, 0.85)
+	add_child(_embers)
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = BallerAnim.build_simple_strip(
 		"res://assets/placeholder/fx/ball.png", 16, 12.0)
@@ -58,6 +74,14 @@ func _process(_delta: float) -> void:
 	_sprite.position = Vector2(0.0, -z - 12.0)
 	_shadow.scale = Vector2.ONE * lerpf(0.6, 0.35, clampf(z / 300.0, 0.0, 1.0))
 	_sprite.speed_scale = 2.0 if state == State.SHOT or state == State.PASS else 1.0
+	# she's on fire -> so is the ball
+	var hot: bool = (
+		(holder != null and holder.on_fire)
+		or (state == State.SHOT and shooter != null and shooter.on_fire)
+	)
+	_sprite.modulate = Color(1.0, 0.6, 0.25) if hot else Color.WHITE
+	_embers.emitting = hot
+	_embers.position = _sprite.position
 
 
 # --------------------------------------------------------------------- sim
@@ -87,6 +111,9 @@ func _sim_held() -> void:
 		z = absf(sin(_spin_t * 9.0)) * 40.0 + 10.0  # hard dribble on the move
 	else:
 		z = absf(sin(_spin_t * 5.0)) * 26.0 + 10.0
+	if z < 14.0 and _held_prev_z >= 14.0 and holder.z <= 0.0:
+		AudioManager.play("dribble", -16.0)
+	_held_prev_z = z
 
 
 func give_to(baller) -> void:
@@ -130,6 +157,7 @@ func _sim_shot(delta: float) -> void:
 		match_scene.score_basket(shooter.team, shot_points, shooter, false)
 	else:
 		# rim clank -> live rebound (no stoppage, ever)
+		AudioManager.play("rim_clank", -6.0)
 		var rng: RandomNumberGenerator = match_scene.rng
 		vel = Vector2(
 			-signf(flight_target.x) * rng.randf_range(60.0, 240.0),
@@ -192,6 +220,19 @@ func poke_loose(dir: Vector2) -> void:
 	pickup_cooldown = 0.18
 
 
+func tip_toss() -> void:
+	## Jump-ball toss at center court (match start / overtime).
+	holder = null
+	shooter = null
+	pass_receiver = null
+	state = State.LOOSE
+	position = Vector2.ZERO
+	vel = Vector2.ZERO
+	z = 20.0
+	zvel = 720.0
+	pickup_cooldown = 0.55
+
+
 func _sim_loose(delta: float) -> void:
 	position += vel * delta
 	vel = vel.move_toward(Vector2.ZERO, 260.0 * delta)
@@ -199,6 +240,8 @@ func _sim_loose(delta: float) -> void:
 	z += zvel * delta
 	if z <= 0.0:
 		z = 0.0
+		if zvel < -140.0:
+			AudioManager.play("bounce", -10.0)
 		zvel = -zvel * 0.55
 		if zvel < 60.0:
 			zvel = 0.0

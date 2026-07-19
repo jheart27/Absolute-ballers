@@ -48,6 +48,9 @@ func _ready() -> void:
 	var play := _button(v, "EXHIBITION", func() -> void:
 		Game.goto_team_select("exhibition"))
 	_button(v, "TOURNAMENT", func() -> void: Game.goto_team_select("tournament"))
+	_button(v, "WATCH DEMO", func() -> void:
+		Game.start_match(MatchConfig.quick_default(
+			Game.settings, Game.teams, Game.character_list())))
 	v.add_child(_spacer(12.0))
 	_size_btn = _button(v, "", _cycle_team_size)
 	_quarter_btn = _button(v, "", _cycle_quarter)
@@ -113,6 +116,7 @@ func _button(parent: Control, text: String, callback: Callable) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(340.0, 44.0)
 	b.add_theme_font_size_override("font_size", 21)
+	b.pressed.connect(func() -> void: AudioManager.play("click", -8.0))
 	b.pressed.connect(callback)
 	parent.add_child(b)
 	return b

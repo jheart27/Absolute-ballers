@@ -116,9 +116,11 @@ func _poll_lobby() -> void:
 		if seat == null:
 			if _poller.just(device, "a") and seats.size() < 4:
 				_join(device)
+				AudioManager.play("click", -4.0)
 			continue
 		if _poller.just(device, "a"):
 			seat.locked = true
+			AudioManager.play("click", -6.0)
 			_dirty = true
 		elif _poller.just(device, "b"):
 			if seat.locked:

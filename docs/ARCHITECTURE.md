@@ -26,7 +26,18 @@ BallerVisual / GameBall sprites  <--reads-- sim fields (never writes)
   (given the same RNG stream).
 
 `EventBus` (autoload) carries gameplay facts (baskets, fire, steals) out to
-HUD/announcer/Steam without the sim knowing they exist.
+HUD/announcer/Steam/audio without the sim knowing they exist.
+
+Two deliberate exceptions, documented here so they aren't cargo-culted:
+
+- `AudioManager` gets a few direct fire-and-forget calls from the sim
+  (ball bounces, dribbles, jump whooshes) where no gameplay event exists.
+  They never affect state; under future rollback netcode these calls would
+  need a "no sounds during resimulation" guard.
+- `BallerVisual` is created by MatchScene and attached to each Baller, not
+  by Baller itself — the sim never references a visual class, keeping the
+  script dependency graph a strict DAG (cyclic class_name references can
+  fail to resolve on a fresh project open and take the autoload chain down).
 
 ## World model
 

@@ -43,17 +43,18 @@ var controller = null  # active intent source (HumanInput or AIInput)
 var ai_controller = null  # persistent AI brain, resumed when a human switches away
 var intent: PlayerIntent = PlayerIntent.new()
 
-var visual: BallerVisual = null
+# BallerVisual child. Created and attached by MatchScene, NOT here: the sim
+# never references the visual's class, keeping the script dependency graph
+# acyclic (cyclic class_name references can fail to resolve on a fresh
+# project open, taking the whole autoload chain down with them).
+var visual = null
 
 
-func setup(def: CharacterDef, team_idx: int, team_color: Color, match_ref) -> void:
+func setup(def: CharacterDef, team_idx: int, match_ref) -> void:
 	char_def = def
 	team = team_idx
 	match_scene = match_ref
 	name = "Baller_%s" % def.id
-	visual = BallerVisual.new()
-	add_child(visual)
-	visual.setup(self, team_color)
 
 
 func is_human() -> bool:
@@ -135,6 +136,7 @@ func _start_jump(shooting: bool) -> void:
 	charging_shot = shooting
 	zvel = JUMP_IMPULSE
 	vel = intent.move.limit_length(1.0) * run_speed() * 0.5  # carry some momentum
+	AudioManager.play("whoosh", -14.0)
 	_enter(State.JUMP)
 
 

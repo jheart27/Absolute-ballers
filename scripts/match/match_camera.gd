@@ -13,6 +13,11 @@ const PAD := 170.0
 const ART_HALF := Vector2(1024.0, 640.0)
 
 var match_scene = null
+var _shake := 0.0
+
+
+func add_shake(amount: float) -> void:
+	_shake = maxf(_shake, amount)
 
 
 func _process(delta: float) -> void:
@@ -47,3 +52,10 @@ func _process(delta: float) -> void:
 	position = position.lerp(target, 1.0 - exp(-6.0 * delta))
 	var kz := lerpf(zoom.x, k, 1.0 - exp(-3.5 * delta))
 	zoom = Vector2(kz, kz)
+	if _shake > 0.0:
+		offset = Vector2(
+			randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake
+		_shake *= exp(-7.0 * delta)
+		if _shake < 0.4:
+			_shake = 0.0
+			offset = Vector2.ZERO

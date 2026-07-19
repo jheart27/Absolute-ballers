@@ -45,3 +45,17 @@ under `assets/`, copy any `data/characters/*.tres`, edit id/name/stats/
 
 Godot import: project defaults to nearest-neighbor filtering; first editor
 open generates `.import` files — commit them.
+
+## Audio
+
+`tools/generate_audio.py` produces procedural placeholder SFX in
+`assets/placeholder/audio/`. **Filenames are the contract** — AudioManager
+loads by basename, so final sound design replaces the WAVs 1:1:
+
+bounce, dribble, swish, rim_clank, slam, block, steal, whoosh, pass,
+buzzer, fire_ignite, knockdown, click, cheer, crowd_loop (looped ambient
+bed; loop points are set in code).
+
+Any format Godot imports as an AudioStream works (.wav/.ogg — if you switch
+to .ogg, update the extension filter in `audio_manager.gd`). Missing files
+degrade to silence with a warning, never a crash.

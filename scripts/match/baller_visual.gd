@@ -21,12 +21,12 @@ func setup(b, team_col: Color) -> void:
 	baller = b
 	team_color = team_col
 	_ring = Sprite2D.new()
-	_ring.texture = load("res://assets/placeholder/fx/ring.png")
+	_ring.texture = Art.tex("res://assets/placeholder/fx/ring.png")
 	_ring.modulate = team_color
 	_ring.position = Vector2(0.0, 4.0)
 	add_child(_ring)
 	_shadow = Sprite2D.new()
-	_shadow.texture = load("res://assets/placeholder/fx/shadow.png")
+	_shadow.texture = Art.tex("res://assets/placeholder/fx/shadow.png")
 	add_child(_shadow)
 	_aura = AnimatedSprite2D.new()
 	_aura.sprite_frames = BallerAnim.build_simple_strip(
@@ -39,7 +39,7 @@ func setup(b, team_col: Color) -> void:
 	_sprite.play("idle")
 	add_child(_sprite)
 	_arrow = Sprite2D.new()
-	_arrow.texture = load("res://assets/placeholder/fx/arrow.png")
+	_arrow.texture = Art.tex("res://assets/placeholder/fx/arrow.png")
 	_arrow.visible = false
 	add_child(_arrow)
 

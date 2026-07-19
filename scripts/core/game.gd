@@ -9,6 +9,8 @@ var characters := {}  # id -> CharacterDef
 var teams: Array = []  # TeamDef list
 var tournament = null  # TournamentState while a bracket is running
 var pending_match = null  # MatchConfig consumed by the next MatchScene
+var record_wins := 0  # career record (matches where all humans shared a side)
+var record_losses := 0
 
 var _current_screen: Node = null
 
@@ -65,6 +67,14 @@ func _switch(screen: Node) -> void:
 	get_tree().root.add_child.call_deferred(screen)
 
 
+func record_result(player_won: bool) -> void:
+	if player_won:
+		record_wins += 1
+	else:
+		record_losses += 1
+	save_settings()
+
+
 # ----------------------------------------------------------------- settings
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -73,6 +83,8 @@ func save_settings() -> void:
 	cfg.set_value("match", "difficulty", settings.difficulty)
 	cfg.set_value("match", "fire_mode", settings.fire_mode)
 	cfg.set_value("match", "shot_clock_enabled", settings.shot_clock_enabled)
+	cfg.set_value("meta", "record_wins", record_wins)
+	cfg.set_value("meta", "record_losses", record_losses)
 	cfg.save(SETTINGS_PATH)
 
 
@@ -87,3 +99,5 @@ func load_settings() -> void:
 	settings.fire_mode = cfg.get_value("match", "fire_mode", settings.fire_mode)
 	settings.shot_clock_enabled = cfg.get_value(
 		"match", "shot_clock_enabled", settings.shot_clock_enabled)
+	record_wins = cfg.get_value("meta", "record_wins", 0)
+	record_losses = cfg.get_value("meta", "record_losses", 0)

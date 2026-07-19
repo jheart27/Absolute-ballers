@@ -124,6 +124,7 @@ func _build_pause_panel() -> void:
 	v.add_child(_make_label("PAUSED", 48, Color.WHITE))
 	_resume_btn = _make_button("RESUME", _on_resume)
 	v.add_child(_resume_btn)
+	v.add_child(_make_button("RESTART MATCH", _on_restart))
 	v.add_child(_make_button("QUIT MATCH", _on_quit))
 
 
@@ -135,6 +136,11 @@ func show_pause() -> void:
 func _on_resume() -> void:
 	get_tree().paused = false
 	_pause_panel.visible = false
+
+
+func _on_restart() -> void:
+	get_tree().paused = false
+	Game.start_match(match_scene.config)
 
 
 func _on_quit() -> void:
@@ -156,9 +162,9 @@ func show_end_panel(winner: int) -> void:
 		v.add_child(_make_label(
 			"MVP: %s (%d PTS)" % [
 				mvp.char_def.display_name.to_upper(),
-				int(st.player_points.get(mvp, 0))],
+				int(st.stats_for(mvp).pts)],
 			26, Color(1.0, 0.85, 0.3)))
-	# box score
+	# box score: PTS / dunks / threes / steals / blocks
 	var box := HBoxContainer.new()
 	box.add_theme_constant_override("separation", 48)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -169,12 +175,14 @@ func show_end_panel(winner: int) -> void:
 		var box_td: TeamDef = match_scene.config.team_defs[t]
 		col.add_child(_make_label(box_td.team_name.to_upper(), 18, box_td.primary_color))
 		for b in match_scene.team_ballers[t]:
+			var s: Dictionary = st.stats_for(b)
 			col.add_child(_make_label(
-				"%s%s  %d PTS" % [
+				"%s%s  %d pts  %d dnk  %d 3pm  %d stl  %d blk" % [
 					b.char_def.display_name,
 					"*" if b.is_human() else "",
-					int(st.player_points.get(b, 0))],
-				15, Color(0.85, 0.85, 0.95)))
+					int(s.pts), int(s.dunks), int(s.threes),
+					int(s.steals), int(s.blocks)],
+				14, Color(0.85, 0.85, 0.95)))
 	var btn := _make_button("CONTINUE", func() -> void: Game.finish_match(winner))
 	v.add_child(btn)
 	btn.grab_focus()

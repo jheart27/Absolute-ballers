@@ -32,7 +32,9 @@ var shooter = null
 # pass flight
 var pass_receiver = null
 var pass_team := 0
+var pass_origin := Vector2.ZERO  # where the pass left from (alley-oop check)
 var _pass_rolled: Array = []  # opponents who already had their interception roll
+var _swat_rolled: Array = []  # defenders who already had their goaltend roll
 
 var _spin_t := 0.0
 var _held_prev_z := 0.0
@@ -143,6 +145,7 @@ func launch_shot(by, result: Dictionary) -> void:
 	var dist := position.distance_to(hoop)
 	flight_dur = clampf(dist / 640.0, 0.55, 1.05)
 	flight_apex = 120.0 + dist * 0.16
+	_swat_rolled = []
 
 
 func _sim_shot(delta: float) -> void:
@@ -150,6 +153,25 @@ func _sim_shot(delta: float) -> void:
 	var t := clampf(flight_t, 0.0, 1.0)
 	position = flight_from.lerp(flight_target, t)
 	z = lerpf(flight_from_z, CourtGeometry.RIM_HEIGHT, t) + flight_apex * 4.0 * t * (1.0 - t)
+	# goaltending is LEGAL here: an airborne defender near the ball can swat
+	# it out of the sky — even a shot that was going in (arcade arm reach)
+	if flight_t > 0.22 and flight_t < 0.96 and z < 400.0:
+		var rng: RandomNumberGenerator = match_scene.rng
+		for d in match_scene.opponents_of(shooter.team):
+			if d.state != Baller.State.JUMP or d.z < 40.0 or _swat_rolled.has(d):
+				continue
+			if d.position.distance_to(position) > 56.0:
+				continue
+			_swat_rolled.append(d)
+			if rng.randf() < 0.5 + d.char_def.block * 0.04:
+				vel = Vector2(
+					-signf(flight_target.x) * rng.randf_range(180.0, 320.0),
+					rng.randf_range(-140.0, 140.0))
+				zvel = 140.0
+				state = State.LOOSE
+				pickup_cooldown = 0.2
+				EventBus.shot_blocked.emit(d, shooter)
+				return
 	if flight_t < 1.0:
 		return
 	if shot_will_score:
@@ -172,6 +194,7 @@ func launch_pass(from_baller, to_baller) -> void:
 	state = State.PASS
 	pass_receiver = to_baller
 	pass_team = from_baller.team
+	pass_origin = from_baller.position
 	_pass_rolled = []
 	z = maxf(z, 40.0)
 

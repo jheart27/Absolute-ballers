@@ -15,6 +15,7 @@ var _aura: AnimatedSprite2D
 var _ring: Sprite2D
 var _arrow: Sprite2D
 var _shadow: Sprite2D
+var _embers: CPUParticles2D
 
 
 func setup(b, team_col: Color) -> void:
@@ -34,6 +35,20 @@ func setup(b, team_col: Color) -> void:
 	_aura.play("loop")
 	_aura.visible = false
 	add_child(_aura)
+	_embers = CPUParticles2D.new()
+	_embers.emitting = false
+	_embers.amount = 18
+	_embers.lifetime = 0.45
+	_embers.local_coords = false  # embers trail behind a sprinting baller
+	_embers.direction = Vector2(0.0, -1.0)
+	_embers.spread = 180.0
+	_embers.initial_velocity_min = 12.0
+	_embers.initial_velocity_max = 50.0
+	_embers.gravity = Vector2(0.0, -35.0)
+	_embers.scale_amount_min = 1.5
+	_embers.scale_amount_max = 3.0
+	_embers.color = Color(1.0, 0.55, 0.1, 0.7)
+	add_child(_embers)
 	_sprite = AnimatedSprite2D.new()
 	_sprite.sprite_frames = BallerAnim.build_frames(b.char_def.sprite_sheet)
 	_sprite.play("idle")
@@ -50,6 +65,8 @@ func _process(_delta: float) -> void:
 	_sprite.flip_h = baller.facing < 0
 	_aura.position = Vector2(0.0, zoff - 6.0)
 	_aura.visible = baller.on_fire
+	_embers.emitting = baller.on_fire
+	_embers.position = Vector2(0.0, zoff)
 	_shadow.scale = Vector2.ONE * lerpf(1.0, 0.6, clampf(baller.z / 300.0, 0.0, 1.0))
 	var human: bool = baller.is_human()
 	_arrow.visible = human

@@ -64,6 +64,10 @@ func _offense_with_ball(it: PlayerIntent, diff: Dictionary, ms) -> void:
 		return
 	_think_t = float(diff.think_interval) * ms.rng.randf_range(0.8, 1.3)
 
+	# 0) shot clock about to expire: throw SOMETHING at the rim
+	if ms.settings.shot_clock_enabled and ms.state.shot_clock < 4.0 and dist < 640.0:
+		it.shoot_pressed = true
+		return
 	# 1) dunk when the lane is there
 	if b._dunk_available() and openness > 60.0:
 		it.shoot_pressed = true
@@ -126,6 +130,9 @@ func _defense(it: PlayerIntent, diff: Dictionary, delta: float, ms) -> void:
 	var my_hoop := CourtGeometry.hoop_pos(1 - b.team)  # the hoop we defend
 	var guard_pos: Vector2 = mark.position \
 		+ (my_hoop - mark.position).normalized() * 70.0
+	if mark != ms.ball.holder:
+		# off-ball: shade toward the ball to clog the passing lane
+		guard_pos = guard_pos.lerp(ms.ball.position, 0.18)
 	_seek(it, guard_pos, 12.0)
 	it.turbo = b.position.distance_to(guard_pos) > 260.0 and b.turbo_meter > 30.0
 	if mark != ms.ball.holder:
@@ -142,6 +149,19 @@ func _defense(it: PlayerIntent, diff: Dictionary, delta: float, ms) -> void:
 
 func _loose_ball(it: PlayerIntent, ms) -> void:
 	var b = baller
+	# a shot is in the air: defenders near their rim try the goaltend swat
+	# (legal here!), everyone else crashes toward the scramble
+	if ms.ball.state == GameBall.State.SHOT:
+		var defended_hoop := CourtGeometry.hoop_pos(1 - b.team)
+		var ball_dist: float = b.position.distance_to(ms.ball.position)
+		if (
+			ms.ball.shooter != null and ms.ball.shooter.team != b.team
+			and b.position.distance_to(defended_hoop) < 220.0
+			and ball_dist < 130.0 and ms.ball.z < 430.0
+			and ms.rng.randf() < float(team_ai.diff_params().block_urge) * 0.1
+		):
+			it.shoot_pressed = true
+			return
 	if team_ai.should_chase(b):
 		_seek(it, ms.ball.position, 4.0)
 		it.turbo = b.turbo_meter > 20.0

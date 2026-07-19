@@ -47,6 +47,7 @@ func _ready() -> void:
 	_reset_formation(0, true)  # quarter 1 opens with a jump-ball toss
 	EventBus.steal_made.connect(_on_steal_made)
 	EventBus.knockdown.connect(_on_knockdown)
+	EventBus.shot_blocked.connect(_on_shot_blocked)
 	EventBus.quarter_started.emit(1)
 	EventBus.announce.emit("TIP-OFF!", 0)
 	AudioManager.start_ambient()
@@ -54,15 +55,39 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	AudioManager.stop_ambient()
+	Engine.time_scale = 1.0  # never leak a hit-stop into the menus
 	if EventBus.steal_made.is_connected(_on_steal_made):
 		EventBus.steal_made.disconnect(_on_steal_made)
 	if EventBus.knockdown.is_connected(_on_knockdown):
 		EventBus.knockdown.disconnect(_on_knockdown)
+	if EventBus.shot_blocked.is_connected(_on_shot_blocked):
+		EventBus.shot_blocked.disconnect(_on_shot_blocked)
 
 
-func _on_steal_made(_stealer, _victim) -> void:
+func _on_steal_made(stealer, _victim) -> void:
+	if stealer != null:
+		state.add_steal(stealer)
 	if rng.randf() < 0.6:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.STEAL, rng), 1)
+
+
+func _on_shot_blocked(blocker, shooter) -> void:
+	## Fires for both release blocks (ShotResolver) and mid-flight goaltend
+	## swats (GameBall) — all the presentation lives here, once.
+	state.add_block(blocker)
+	EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.BLOCK, rng), 2)
+	cam.add_shake(8.0)
+	_rumble(shooter, 0.3, 0.5, 0.25)
+	_hitstop(0.07)
+
+
+func _hitstop(duration: float) -> void:
+	## Tiny freeze-frame for big moments. The restore lambda captures no
+	## nodes, so a mid-hitstop scene change can't strand a slow time scale
+	## (and _exit_tree restores it as a belt-and-braces).
+	Engine.time_scale = 0.12
+	get_tree().create_timer(duration, true, false, true).timeout.connect(
+		func() -> void: Engine.time_scale = 1.0)
 
 
 func _on_knockdown(victim) -> void:
@@ -183,7 +208,17 @@ func _tick_clock(delta: float) -> void:
 			_inbound(1 - state.possession)
 	state.clock -= delta
 	if state.clock <= 0.0:
+		state.clock = 0.0
+		if ball.state == GameBall.State.SHOT or _dunk_in_progress():
+			return  # respect the shot — the buzzer waits for the ball
 		_end_quarter()
+
+
+func _dunk_in_progress() -> bool:
+	for b in all_ballers:
+		if b.state == Baller.State.DUNK:
+			return true
+	return false
 
 
 func _end_quarter() -> void:
@@ -220,6 +255,18 @@ func _end_match() -> void:
 	for b in team_ballers[winner]:
 		if b.is_human():
 			winner_has_human = true
+	# the sim loop is halted now, so posing the winners directly is safe
+	for b in team_ballers[winner]:
+		if b.state != Baller.State.HURT:
+			b.state = Baller.State.CELEBRATE
+	# career record only counts when all humans were on one side
+	var human_teams := {}
+	for t in 2:
+		for b in team_ballers[t]:
+			if b.is_human():
+				human_teams[t] = true
+	if human_teams.size() == 1:
+		Game.record_result(human_teams.has(winner))
 	EventBus.match_ended.emit(winner, winner_has_human)
 	hud.show_end_panel(winner)
 
@@ -254,14 +301,11 @@ func request_shot(shooter, quality: float) -> void:
 	var result := ShotResolver.resolve(shooter, quality, self)
 	EventBus.shot_taken.emit(shooter)
 	if result.blocked:
-		EventBus.shot_blocked.emit(result.blocker, shooter)
-		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.BLOCK, rng), 2)
-		cam.add_shake(8.0)
-		_rumble(shooter, 0.3, 0.5, 0.25)
 		var away_from_hoop := Vector2(
 			-signf(CourtGeometry.hoop_pos(shooter.team).x),
 			rng.randf_range(-0.6, 0.6))
 		ball.poke_loose(away_from_hoop.normalized())
+		EventBus.shot_blocked.emit(result.blocker, shooter)
 	else:
 		ball.launch_shot(shooter, result)
 
@@ -290,6 +334,16 @@ func on_pass_caught(receiver) -> void:
 		_auto_switch_from.controller = _auto_switch_from.ai_controller
 		receiver.controller = human
 	_auto_switch_from = null
+	# ALLEY-OOP: a long feed to someone standing in dunk range under the rim
+	# turns straight into a slam
+	if (
+		(receiver.state == Baller.State.IDLE or receiver.state == Baller.State.RUN)
+		and receiver._dunk_available()
+		and ball.pass_origin.distance_to(receiver.position) > 240.0
+	):
+		receiver._start_dunk()
+		EventBus.announce.emit("ALLEY-OOP!", 2)
+		AudioManager.play("whoosh", -8.0)
 
 
 func _pick_pass_target(passer, aim: Vector2):
@@ -315,14 +369,18 @@ func complete_dunk(dunker) -> void:
 func score_basket(team: int, points: int, scorer, was_dunk: bool) -> void:
 	if state.phase == MatchState.Phase.ENDED:
 		return
-	var fire_ev: Dictionary = state.register_basket(team, points, scorer)
+	var fire_ev: Dictionary = state.register_basket(team, points, scorer, was_dunk)
 	hoops[team].flash()
+	_spawn_points_popup(points, CourtGeometry.hoop_pos(team))
 	EventBus.basket_scored.emit(team, points, scorer, was_dunk)
 	EventBus.score_changed.emit(state.scores)
+	if state.phase == MatchState.Phase.PLAY and state.clock <= 0.01:
+		EventBus.announce.emit("AT THE BUZZER!", 2)
 	if was_dunk:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.DUNK, rng), 2)
 		cam.add_shake(14.0)
 		_rumble(scorer, 0.4, 0.7, 0.3)
+		_hitstop(0.09)
 	elif points == 3:
 		EventBus.announce.emit(AnnouncerLines.pick(AnnouncerLines.THREE, rng), 1)
 	elif rng.randf() < 0.35:
@@ -345,6 +403,25 @@ func score_basket(team: int, points: int, scorer, was_dunk: bool) -> void:
 		_end_match()
 		return
 	_inbound(1 - team)
+
+
+func _spawn_points_popup(points: int, hoop: Vector2) -> void:
+	## Floating "+2"/"+3" in world space above the scored-on rim.
+	var l := Label.new()
+	l.text = "+%d" % points
+	l.add_theme_font_size_override("font_size", 44 if points == 3 else 34)
+	l.add_theme_color_override(
+		"font_color",
+		Color(1.0, 0.85, 0.3) if points == 3 else Color.WHITE)
+	l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.15))
+	l.add_theme_constant_override("outline_size", 8)
+	l.position = hoop + Vector2(-26.0, -370.0)
+	l.z_index = 50
+	add_child(l)
+	var tw := l.create_tween()
+	tw.tween_property(l, "position:y", l.position.y - 70.0, 0.7)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.7)
+	tw.tween_callback(l.queue_free)
 
 
 func _inbound(team: int) -> void:

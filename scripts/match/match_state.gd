@@ -14,7 +14,7 @@ var clock := 0.0
 var shot_clock := 0.0
 var phase: int = Phase.PLAY
 var possession := 0
-var player_points := {}  # Baller -> int
+var player_stats := {}  # Baller -> {pts, dunks, threes, steals, blocks}
 var streaks := {}  # PER_PLAYER: Baller -> makes; PER_TEAM: team int -> makes
 var fire_baskets := {}  # Baller -> makes while on fire (burnout counter)
 
@@ -25,11 +25,31 @@ func _init(s: MatchSettings) -> void:
 	shot_clock = s.shot_clock_sec
 
 
-func register_basket(team: int, points: int, scorer) -> Dictionary:
+func stats_for(baller) -> Dictionary:
+	if not player_stats.has(baller):
+		player_stats[baller] = {
+			"pts": 0, "dunks": 0, "threes": 0, "steals": 0, "blocks": 0}
+	return player_stats[baller]
+
+
+func add_steal(baller) -> void:
+	stats_for(baller).steals += 1
+
+
+func add_block(baller) -> void:
+	stats_for(baller).blocks += 1
+
+
+func register_basket(team: int, points: int, scorer, was_dunk: bool) -> Dictionary:
 	## Returns fire transitions for MatchScene to apply:
 	## {ignite: [Baller], douse: [Baller], heating: [Baller]}
 	scores[team] += points
-	player_points[scorer] = int(player_points.get(scorer, 0)) + points
+	var stat := stats_for(scorer)
+	stat.pts += points
+	if was_dunk:
+		stat.dunks += 1
+	if points == 3:
+		stat.threes += 1
 	var ev := {"ignite": [], "douse": [], "heating": []}
 	if settings.fire_mode == MatchSettings.FireMode.PER_PLAYER:
 		_fire_per_player(team, scorer, ev)
@@ -80,10 +100,13 @@ func leader() -> int:
 
 
 func mvp():
+	## Points-weighted, but hustle counts: steals/blocks are worth 2, dunks 1.
 	var best = null
-	var best_pts := -1
-	for b in player_points:
-		if int(player_points[b]) > best_pts:
-			best_pts = int(player_points[b])
+	var best_score := -1.0
+	for b in player_stats:
+		var s: Dictionary = player_stats[b]
+		var score: float = s.pts + 2.0 * (s.steals + s.blocks) + s.dunks
+		if score > best_score:
+			best_score = score
 			best = b
 	return best

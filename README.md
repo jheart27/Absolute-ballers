@@ -54,11 +54,21 @@ baller, and locks in. Remaining roster slots are AI-filled.
 ## Match rules
 
 - 4 quarters x 2:00 by default (configurable in the menu), sudden-death OT.
-- No fouls, no free throws, no out-of-bounds. Goaltending welcome.
-- Shot clock optional (off by default).
+- Every quarter-1 and overtime starts with a live jump-ball toss.
+- No fouls, no free throws, no out-of-bounds. **Goaltending is legal** —
+  time a block jump near the rim to swat shots out of the air, even ones
+  that were going in.
+- **Alley-oops:** a long pass (240+ units) to a teammate standing in dunk
+  range converts straight into a slam.
+- **Buzzer beaters:** the clock can hit zero while a shot flies — the
+  quarter waits for the ball ("AT THE BUZZER!").
+- Shot clock optional (off by default); AI panics and hoists when it's low.
 - **On fire:** 3 consecutive personal buckets ignites a baller — speed and
-  shot boosts, aura, unlimited turbo — until the other team scores or she
-  burns out (4 baskets). A per-TEAM fire variant can be toggled in the menu.
+  shot boosts, aura + ember trail, unlimited turbo — until the other team
+  scores or she burns out (4 baskets). A per-TEAM fire variant can be
+  toggled in the menu.
+- Full box score at the end: points, dunks, threes, steals, blocks; MVP is
+  hustle-weighted, not just points. Career W-L record shows on the menu.
 
 ## Repository layout
 
@@ -99,7 +109,11 @@ assets that follow them are drop-in replacements.
 7. ~~Steam scaffolding (stubs)~~ ✅
 8. ~~Arcade juice: SFX, tip-off jump ball, camera shake, gamepad rumble,
    flaming ball FX, box score, demo mode~~ ✅
-9. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
-   in `docs/ONLINE_MULTIPLAYER.md`; music pass + real sound design; real
-   art drop-in; polish (half-court side switch, goaltend swats mid-flight,
-   alley-oops).
+9. ~~Gameplay depth: alley-oops, goaltend swats, buzzer beaters, hit-stop,
+   full stat lines + hustle-weighted MVP, smarter defense (lane denial,
+   rim protection, shot-clock panic), how-to-play screen, career record,
+   restart option~~ ✅
+10. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
+    in `docs/ONLINE_MULTIPLAYER.md`; music pass + real sound design; real
+    art drop-in; polish (half-court side switch at halftime, injuries/
+    fatigue, unlockable ballers).

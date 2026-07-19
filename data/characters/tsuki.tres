@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tsuki"
+display_name = "Tsuki"
+tagline = "Cold-blooded closer."
+sprite_sheet = "res://assets/placeholder/characters/tsuki.png"
+ui_color = Color(0.7843, 0.8039, 0.8627, 1)
+speed = 5
+three_point = 8
+dunk = 5
+power = 4
+steal = 4
+block = 4

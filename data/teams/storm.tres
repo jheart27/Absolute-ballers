@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="TeamDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/team_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "storm"
+team_name = "Violet Storm"
+short_name = "VIO"
+primary_color = Color(0.7, 0.4, 1.0, 1)
+secondary_color = Color(0.15, 0.08, 0.25, 1)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "yumi"
+display_name = "Yumi"
+tagline = "Splash queen."
+sprite_sheet = "res://assets/placeholder/characters/yumi.png"
+ui_color = Color(0.2745, 0.4314, 0.9020, 1)
+speed = 5
+three_point = 9
+dunk = 2
+power = 3
+steal = 5
+block = 3

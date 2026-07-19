@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sora"
+display_name = "Sora"
+tagline = "The wall."
+sprite_sheet = "res://assets/placeholder/characters/sora.png"
+ui_color = Color(0.2353, 0.7451, 0.7255, 1)
+speed = 4
+three_point = 3
+dunk = 5
+power = 7
+steal = 4
+block = 9

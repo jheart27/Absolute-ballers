@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hana"
+display_name = "Hana"
+tagline = "Small package, big slam."
+sprite_sheet = "res://assets/placeholder/characters/hana.png"
+ui_color = Color(0.9412, 0.4706, 0.7059, 1)
+speed = 6
+three_point = 2
+dunk = 9
+power = 7
+steal = 3
+block = 5

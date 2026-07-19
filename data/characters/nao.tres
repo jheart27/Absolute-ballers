@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "nao"
+display_name = "Nao"
+tagline = "Tempo setter."
+sprite_sheet = "res://assets/placeholder/characters/nao.png"
+ui_color = Color(0.9216, 0.5098, 0.2353, 1)
+speed = 7
+three_point = 7
+dunk = 4
+power = 4
+steal = 5
+block = 3

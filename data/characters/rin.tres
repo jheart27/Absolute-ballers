@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rin"
+display_name = "Rin"
+tagline = "Blink and she's gone."
+sprite_sheet = "res://assets/placeholder/characters/rin.png"
+ui_color = Color(0.1765, 0.1569, 0.2157, 1)
+speed = 9
+three_point = 4
+dunk = 5
+power = 3
+steal = 7
+block = 2

@@ -1,0 +1,12 @@
+# Godot 4
+.godot/
+*.tmp
+export_presets.cfg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (asset tooling)
+__pycache__/
+*.pyc

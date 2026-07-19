@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rei"
+display_name = "Rei"
+tagline = "Full-court menace."
+sprite_sheet = "res://assets/placeholder/characters/rei.png"
+ui_color = Color(0.3529, 0.7059, 0.3529, 1)
+speed = 6
+three_point = 3
+dunk = 4
+power = 6
+steal = 7
+block = 6

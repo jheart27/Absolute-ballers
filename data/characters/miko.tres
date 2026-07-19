@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "miko"
+display_name = "Miko"
+tagline = "Hands of a fox."
+sprite_sheet = "res://assets/placeholder/characters/miko.png"
+ui_color = Color(0.9216, 0.7843, 0.3529, 1)
+speed = 7
+three_point = 5
+dunk = 3
+power = 3
+steal = 9
+block = 3

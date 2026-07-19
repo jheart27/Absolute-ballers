@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "kaede"
+display_name = "Kaede"
+tagline = "Paint bully."
+sprite_sheet = "res://assets/placeholder/characters/kaede.png"
+ui_color = Color(0.5882, 0.3137, 0.7843, 1)
+speed = 3
+three_point = 3
+dunk = 7
+power = 9
+steal = 3
+block = 6

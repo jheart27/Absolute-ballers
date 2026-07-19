@@ -1,0 +1,7 @@
+*.png binary
+*.wav binary
+*.ogg binary
+*.gd text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.md text eol=lf

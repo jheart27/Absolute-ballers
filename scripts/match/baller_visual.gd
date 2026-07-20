@@ -5,7 +5,7 @@ extends Node2D
 ## it never mutates the baller. Swapping in final art touches nothing here
 ## (sheets are resolved via CharacterDef + BallerAnim).
 
-const SPRITE_FEET_OFFSET := 28.0  # feet sit at y=60 in a 64-tall centered frame
+const SPRITE_FEET_OFFSET := 40.0  # feet sit at y=88 in a 96-tall centered frame
 
 var baller = null
 var team_color := Color.WHITE
@@ -31,7 +31,7 @@ func setup(b, team_col: Color) -> void:
 	add_child(_shadow)
 	_aura = AnimatedSprite2D.new()
 	_aura.sprite_frames = BallerAnim.build_simple_strip(
-		"res://assets/placeholder/fx/fire_aura.png", 96, 10.0)
+		"res://assets/placeholder/fx/fire_aura.png", 128, 10.0)
 	_aura.play("loop")
 	_aura.visible = false
 	add_child(_aura)
@@ -60,7 +60,13 @@ func setup(b, team_col: Color) -> void:
 
 
 func _process(_delta: float) -> void:
-	var zoff: float = -SPRITE_FEET_OFFSET - baller.z
+	# depth scale: players toward the far sideline render a touch smaller,
+	# reinforcing the low camera angle (matches the court's x-foreshortening)
+	var ds: float = lerpf(0.9, 1.06, clampf(
+		(baller.pos.y + CourtGeometry.HALF_DEPTH) / (CourtGeometry.HALF_DEPTH * 2.0),
+		0.0, 1.0))
+	_sprite.scale = Vector2(ds, ds)
+	var zoff: float = -SPRITE_FEET_OFFSET * ds - baller.z
 	_sprite.position = Vector2(0.0, zoff)
 	_sprite.flip_h = baller.facing < 0
 	_aura.position = Vector2(0.0, zoff - 6.0)
@@ -72,7 +78,7 @@ func _process(_delta: float) -> void:
 	_arrow.visible = human
 	if human:
 		_arrow.modulate = baller.controller.color
-		_arrow.position = Vector2(0.0, zoff - 46.0)
+		_arrow.position = Vector2(0.0, zoff - 58.0)
 		_ring.modulate = baller.controller.color
 	else:
 		_ring.modulate = team_color
@@ -112,7 +118,7 @@ func _draw() -> void:
 	if baller.charging_shot:
 		var q: float = baller.shot_quality()
 		var w := 44.0
-		var y: float = -SPRITE_FEET_OFFSET - baller.z - 60.0
+		var y: float = -SPRITE_FEET_OFFSET - baller.z - 74.0
 		draw_rect(Rect2(-w * 0.5, y, w, 7.0), Color(0.0, 0.0, 0.0, 0.65))
 		draw_rect(
 			Rect2(-w * 0.5 + 1.0, y + 1.0, (w - 2.0) * q, 5.0),

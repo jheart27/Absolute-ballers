@@ -83,6 +83,7 @@ func save_settings() -> void:
 	cfg.set_value("match", "difficulty", settings.difficulty)
 	cfg.set_value("match", "fire_mode", settings.fire_mode)
 	cfg.set_value("match", "shot_clock_enabled", settings.shot_clock_enabled)
+	cfg.set_value("match", "show_control_hints", settings.show_control_hints)
 	cfg.set_value("meta", "record_wins", record_wins)
 	cfg.set_value("meta", "record_losses", record_losses)
 	cfg.save(SETTINGS_PATH)
@@ -99,5 +100,7 @@ func load_settings() -> void:
 	settings.fire_mode = cfg.get_value("match", "fire_mode", settings.fire_mode)
 	settings.shot_clock_enabled = cfg.get_value(
 		"match", "shot_clock_enabled", settings.shot_clock_enabled)
+	settings.show_control_hints = cfg.get_value(
+		"match", "show_control_hints", settings.show_control_hints)
 	record_wins = cfg.get_value("meta", "record_wins", 0)
 	record_losses = cfg.get_value("meta", "record_losses", 0)

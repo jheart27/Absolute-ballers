@@ -41,9 +41,17 @@ Two deliberate exceptions, documented here so they aren't cargo-culted:
 
 ## World model
 
-2.5D arcade space: `position` = (x along court, y depth), `z` = height,
-screen pos = `(x, y - z)`, y-sorted by floor y. Constants in
-`CourtGeometry` (1 unit = 1 px of court art; rims at x = ±780, z = 300).
+2.5D arcade space. The **sim** works in flat floor coords: each actor keeps
+`pos` = (x along court, y depth) and `z` = height, and never sees the
+screen. **Rendering** projects floor→screen through `CourtGeometry.project`
+— depth compression (DEPTH_SCALE) plus perspective x-foreshortening (far
+sideline narrower than near) — which produces the Neo-Geo low camera angle.
+Each Node2D's `position` is set to that projection every tick; sprites
+y-sort by projected depth and scale slightly with depth. Height `z` is a
+sprite offset on top. Constants + the projection live in `CourtGeometry`
+(rims at floor x = ±780, z = 300). A parallax crowd layer sits behind the
+projected court. Keeping sim coords flat is what lets the projection change
+(or a future 3D pass) without touching gameplay logic.
 
 Shots are resolved **at release** (`ShotResolver`: meter quality, distance,
 stats, pressure, fire, block windows) and the ball flight animates the

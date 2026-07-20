@@ -21,7 +21,11 @@ var hud: MatchHUD
 var cam: MatchCamera
 
 var _stage: Node2D
+var _crowd: Sprite2D
+var _crowd_base := Vector2.ZERO
 var _break_t := 0.0
+var attract := false  # AI-vs-AI demo: any button exits
+var _any_prev := true  # swallow the press that launched the demo
 var _auto_switch_from = null  # human passer awaiting control-follows-ball
 var _pause_prev := {}
 
@@ -32,6 +36,7 @@ func _ready() -> void:
 		config = MatchConfig.quick_default(
 			Game.settings, Game.teams, Game.character_list())
 	settings = config.settings
+	attract = config.human_seats.is_empty() and config.context == "exhibition"
 	rng.randomize()
 	_build_court()
 	_build_teams()
@@ -97,15 +102,44 @@ func _on_knockdown(victim) -> void:
 
 
 func _rumble(baller, weak: float, strong: float, duration: float) -> void:
-	if baller != null and baller.controller is HumanInput \
-			and baller.controller.device >= 0:
-		Input.start_joy_vibration(baller.controller.device, weak, strong, duration)
+	if baller == null or not (baller.controller is HumanInput):
+		return
+	var dev: int = baller.controller.device
+	if dev == -2:
+		var pads := Input.get_connected_joypads()
+		if pads.is_empty():
+			return
+		dev = pads[0]
+	if dev >= 0:
+		Input.start_joy_vibration(dev, weak, strong, duration)
+
+
+const CROWD_PARALLAX := Vector2(0.42, 0.75)  # screen-speed factor (<1 = far)
 
 
 func _build_court() -> void:
+	_crowd = Sprite2D.new()
+	_crowd.texture = Art.tex("res://assets/placeholder/court/crowd.png")
+	# bottom of the crowd wall meets the far edge of the projected floor
+	_crowd_base = Vector2(
+		0.0,
+		CourtGeometry.project(Vector2(0.0, -CourtGeometry.HALF_DEPTH)).y
+		- _crowd.texture.get_height() * 0.5 + 10.0)
+	_crowd.position = _crowd_base
+	add_child(_crowd)
 	var floor_sprite := Sprite2D.new()
 	floor_sprite.texture = Art.tex("res://assets/placeholder/court/court_full.png")
 	add_child(floor_sprite)
+
+
+func _process(_delta: float) -> void:
+	# parallax: the crowd tracks a fraction of the camera motion so it reads
+	# as far away (screen speed = CROWD_PARALLAX * normal)
+	if cam == null or _crowd == null:
+		return
+	_crowd.position = _crowd_base + Vector2(
+		cam.position.x * (1.0 - CROWD_PARALLAX.x),
+		cam.position.y * (1.0 - CROWD_PARALLAX.y))
 	_stage = Node2D.new()
 	_stage.name = "Stage"
 	_stage.y_sort_enabled = true
@@ -160,6 +194,12 @@ func _reset_formation(possession_team: int, tip := false) -> void:
 
 # -------------------------------------------------------------------- loop
 func _physics_process(delta: float) -> void:
+	if attract:
+		var any_now := Input.is_anything_pressed()
+		if any_now and not _any_prev:
+			Game.finish_match(state.leader())
+			return
+		_any_prev = any_now
 	if state.phase == MatchState.Phase.ENDED:
 		return
 	_poll_pause()
@@ -187,7 +227,7 @@ func _switch_human(from_baller) -> void:
 	for b in team_ballers[from_baller.team]:
 		if b == from_baller or b.controller is HumanInput:
 			continue
-		var d: float = b.position.distance_to(ball.position)
+		var d: float = b.pos.distance_to(ball.pos)
 		if d < best_d:
 			best_d = d
 			best = b
@@ -283,7 +323,7 @@ func opponents_of(team: int) -> Array:
 func nearest_opponent_distance(baller) -> float:
 	var best := INF
 	for o in team_ballers[1 - baller.team]:
-		best = minf(best, o.position.distance_to(baller.position))
+		best = minf(best, o.pos.distance_to(baller.pos))
 	return best
 
 
@@ -339,7 +379,7 @@ func on_pass_caught(receiver) -> void:
 	if (
 		(receiver.state == Baller.State.IDLE or receiver.state == Baller.State.RUN)
 		and receiver._dunk_available()
-		and ball.pass_origin.distance_to(receiver.position) > 240.0
+		and ball.pass_origin.distance_to(receiver.pos) > 240.0
 	):
 		receiver._start_dunk()
 		EventBus.announce.emit("ALLEY-OOP!", 2)
@@ -352,7 +392,7 @@ func _pick_pass_target(passer, aim: Vector2):
 	for tm in team_ballers[passer.team]:
 		if tm == passer or tm.state == Baller.State.HURT:
 			continue
-		var to_tm: Vector2 = tm.position - passer.position
+		var to_tm: Vector2 = tm.pos - passer.pos
 		var score: float = -to_tm.length() * 0.002
 		if aim.length() > 0.3:
 			score += aim.normalized().dot(to_tm.normalized()) * 2.0
@@ -415,7 +455,7 @@ func _spawn_points_popup(points: int, hoop: Vector2) -> void:
 		Color(1.0, 0.85, 0.3) if points == 3 else Color.WHITE)
 	l.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.15))
 	l.add_theme_constant_override("outline_size", 8)
-	l.position = hoop + Vector2(-26.0, -370.0)
+	l.position = CourtGeometry.project(hoop) + Vector2(-26.0, -370.0)
 	l.z_index = 50
 	add_child(l)
 	var tw := l.create_tween()
@@ -433,7 +473,7 @@ func _inbound(team: int) -> void:
 	for b in team_ballers[team]:
 		if b.state == Baller.State.HURT:
 			continue
-		var d: float = b.position.distance_to(inbound_spot)
+		var d: float = b.pos.distance_to(inbound_spot)
 		if d < best_d:
 			best_d = d
 			best = b
@@ -446,11 +486,15 @@ func _inbound(team: int) -> void:
 func _poll_pause() -> void:
 	var pressed := Input.is_action_just_pressed("ui_pause")
 	for h in humans:
-		if h.device >= 0:
-			var cur := Input.is_joy_button_pressed(h.device, JOY_BUTTON_START)
-			if cur and not _pause_prev.get(h.device, false):
+		var dev: int = h.device
+		if dev == -2:  # solo merged seat: keyboard handled above, pad 0 here
+			var pads := Input.get_connected_joypads()
+			dev = pads[0] if not pads.is_empty() else -1
+		if dev >= 0:
+			var cur := Input.is_joy_button_pressed(dev, JOY_BUTTON_START)
+			if cur and not _pause_prev.get(dev, false):
 				pressed = true
-			_pause_prev[h.device] = cur
+			_pause_prev[dev] = cur
 	if pressed:
 		get_tree().paused = true
 		hud.show_pause()

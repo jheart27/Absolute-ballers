@@ -68,7 +68,7 @@ func _assign_marks() -> void:
 			return true
 		if ball.holder == b:
 			return false
-		return a.position.x < b.position.x)
+		return a.pos.x < b.pos.x)
 	var free: Array = match_scene.teammates_of(team).duplicate()
 	for opp in opp_sorted:
 		if free.is_empty():
@@ -76,7 +76,7 @@ func _assign_marks() -> void:
 		var best = null
 		var best_d := INF
 		for d in free:
-			var dd: float = d.position.distance_to(opp.position)
+			var dd: float = d.pos.distance_to(opp.pos)
 			if dd < best_d:
 				best_d = dd
 				best = d
@@ -106,8 +106,8 @@ func offense_slot(baller) -> Vector2:
 func should_chase(baller) -> bool:
 	## Nearest 1-2 teammates go for a loose ball; the rest hold shape.
 	var mates: Array = match_scene.teammates_of(team).duplicate()
-	var ballp: Vector2 = match_scene.ball.position
+	var ballp: Vector2 = match_scene.ball.pos
 	mates.sort_custom(func(a, b):
-		return a.position.distance_to(ballp) < b.position.distance_to(ballp))
+		return a.pos.distance_to(ballp) < b.pos.distance_to(ballp))
 	var chasers := 1 if mates.size() <= 2 else 2
 	return mates.slice(0, chasers).has(baller)

@@ -7,13 +7,13 @@ class_name ShotResolver
 
 static func resolve(shooter, quality: float, match_scene) -> Dictionary:
 	var hoop := CourtGeometry.hoop_pos(shooter.team)
-	var dist: float = shooter.position.distance_to(hoop)
+	var dist: float = shooter.pos.distance_to(hoop)
 	var is_three := dist > CourtGeometry.THREE_POINT_DIST
 	var rng: RandomNumberGenerator = match_scene.rng
 
 	var pressure := 0.0
 	for d in match_scene.opponents_of(shooter.team):
-		var dd: float = d.position.distance_to(shooter.position)
+		var dd: float = d.pos.distance_to(shooter.pos)
 		if dd < 110.0:
 			pressure = maxf(pressure, (110.0 - dd) / 110.0 * 0.25)
 		# a defender in the air next to the shooter is a live block window

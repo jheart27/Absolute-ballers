@@ -2,12 +2,12 @@ class_name BallerAnim
 ## THE sprite-sheet contract. tools/generate_placeholders.py and all final art
 ## must follow it exactly; see docs/ASSET_PIPELINE.md.
 ##
-## Sheet: 6 columns x 9 rows of 64x64 frames, character faces RIGHT,
-## feet on y=60 inside the frame. Rows in order:
+## Sheet: 6 columns x 9 rows of 96x96 frames, character faces RIGHT,
+## feet on y=88 inside the frame. Rows in order:
 
-const FRAME_SIZE := Vector2i(64, 64)
+const FRAME_SIZE := Vector2i(96, 96)
 const SHEET_COLUMNS := 6
-const FEET_Y := 60
+const FEET_Y := 88
 
 # [animation name, frame count, fps, loops]
 const ROWS: Array = [

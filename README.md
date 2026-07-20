@@ -31,6 +31,14 @@ code changes.
 - Still stuck: copy the first few red lines from the Output panel into the
   session — the exact text pinpoints the file.
 
+## Menu
+
+`SINGLE PLAYER` (Quick Match or Tournament — auto-seats you on team 0, no
+lobby), `VERSUS` (couch lobby, 2-4 humans), `OPTIONS` (team size, quarter
+length, difficulty, on-fire mode, shot clock, control hints, plus **How to
+Play** and **Watch Demo**), `QUIT`. In single player, keyboard and gamepad
+both drive your baller at once — grab whichever.
+
 ## Controls
 
 | Action | Keyboard | Gamepad |
@@ -41,6 +49,9 @@ code changes.
 | Turbo | L or Shift | X or right trigger |
 | Switch to nearest teammate | I | Y |
 | Pause | Esc / P | Start |
+
+A live hint bar at the bottom of the screen shows what SHOOT and PASS do in
+your current situation (toggle in Options).
 
 Context rules (NBA Jam classic): with the ball, SHOOT jumps and charges the
 meter — release at the apex for a perfect shot; near the rim it becomes a

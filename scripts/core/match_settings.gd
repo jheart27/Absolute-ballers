@@ -16,3 +16,4 @@ enum FireMode { PER_PLAYER, PER_TEAM }
 @export var shot_clock_enabled := false
 @export var shot_clock_sec := 24.0
 @export var auto_switch_on_pass := true
+@export var show_control_hints := true  # context button prompts on the HUD

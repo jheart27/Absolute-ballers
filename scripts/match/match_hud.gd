@@ -16,6 +16,7 @@ var _popup_stack := 0
 var _pause_panel: Control
 var _resume_btn: Button
 var _end_panel: Control
+var _hint_bar: Label
 var _root: Control
 
 
@@ -33,11 +34,65 @@ func _ready() -> void:
 	_banner.visible = false
 	_root.add_child(_banner)
 	_build_pause_panel()
+	_build_hint_bar()
 	EventBus.announce.connect(_on_announce)
 
 
 func _exit_tree() -> void:
 	EventBus.announce.disconnect(_on_announce)
+
+
+func _build_hint_bar() -> void:
+	_hint_bar = _make_label("", 22, Color(0.92, 0.92, 1.0))
+	_hint_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_hint_bar.anchor_top = 1.0
+	_hint_bar.anchor_bottom = 1.0
+	_hint_bar.offset_top = -40.0
+	_hint_bar.offset_bottom = -8.0
+	_hint_bar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint_bar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_root.add_child(_hint_bar)
+
+
+func _local_human():
+	## The first human-controlled baller (whoever the local player is driving),
+	## for context hints/prompts. Null in the AI-vs-AI demo.
+	for b in match_scene.all_ballers:
+		if b.is_human():
+			return b
+	return null
+
+
+func _update_hint_bar() -> void:
+	if match_scene.attract:
+		_hint_bar.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		_hint_bar.text = "◆ DEMO ◆   press any button to exit"
+		return
+	if not match_scene.settings.show_control_hints:
+		_hint_bar.text = ""
+		return
+	var me = _local_human()
+	if me == null:
+		_hint_bar.text = ""
+		return
+	_hint_bar.add_theme_color_override("font_color", Color(0.92, 0.92, 1.0))
+	# describe what SHOOT and PASS do in the player's current situation
+	var shoot := "JUMP"
+	var pass_act := "STEAL"
+	if me.has_ball():
+		var hoop: Vector2 = CourtGeometry.hoop_pos(me.team)
+		shoot = "DUNK" if me.pos.distance_to(hoop) < 210.0 else "SHOOT"
+		pass_act = "PASS"
+	else:
+		var ball = match_scene.ball
+		if ball.holder != null and ball.holder.team != me.team:
+			shoot = "BLOCK"
+			pass_act = "STEAL"
+		else:
+			shoot = "JUMP"
+			pass_act = "—"
+	_hint_bar.text = "[A/K] %s     [B/J] %s     [X/L] TURBO     [Y/I] SWITCH" % [
+		shoot, pass_act]
 
 
 func _build_score_strip() -> void:
@@ -65,6 +120,7 @@ func _build_score_strip() -> void:
 func _process(_delta: float) -> void:
 	if match_scene == null or match_scene.state == null:
 		return
+	_update_hint_bar()
 	var st = match_scene.state
 	for t in 2:
 		var team_def: TeamDef = match_scene.config.team_defs[t]

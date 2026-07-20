@@ -52,10 +52,10 @@ func poll(delta: float) -> PlayerIntent:
 func _offense_with_ball(it: PlayerIntent, diff: Dictionary, ms) -> void:
 	var b = baller
 	var hoop := CourtGeometry.hoop_pos(b.team)
-	var dist: float = b.position.distance_to(hoop)
+	var dist: float = b.pos.distance_to(hoop)
 	var openness: float = ms.nearest_opponent_distance(b)
 
-	it.move = b.position.direction_to(hoop)
+	it.move = b.pos.direction_to(hoop)
 	if _strafe_t > 0.0:
 		it.move = (it.move + Vector2(0.0, _strafe)).normalized()
 	it.turbo = dist > 500.0 and b.turbo_meter > 25.0
@@ -90,7 +90,7 @@ func _offense_with_ball(it: PlayerIntent, diff: Dictionary, ms) -> void:
 			continue
 		var tm_open: float = ms.nearest_opponent_distance(tm)
 		var score: float = tm_open - openness \
-			+ (dist - tm.position.distance_to(hoop)) * 0.35
+			+ (dist - tm.pos.distance_to(hoop)) * 0.35
 		if score > best_score:
 			best_score = score
 			best = tm
@@ -116,7 +116,7 @@ func _offense_off_ball(it: PlayerIntent, delta: float, ms) -> void:
 	var target: Vector2 = team_ai.offense_slot(b)
 	if _cutting_t > 0.0:
 		var hoop := CourtGeometry.hoop_pos(b.team)
-		target = hoop + Vector2(-signf(hoop.x) * 90.0, b.position.y * 0.2)
+		target = hoop + Vector2(-signf(hoop.x) * 90.0, b.pos.y * 0.2)
 		it.turbo = b.turbo_meter > 40.0
 	_seek(it, target, 26.0)
 
@@ -128,16 +128,16 @@ func _defense(it: PlayerIntent, diff: Dictionary, delta: float, ms) -> void:
 		_seek(it, CourtGeometry.hoop_pos(1 - b.team), 120.0)
 		return
 	var my_hoop := CourtGeometry.hoop_pos(1 - b.team)  # the hoop we defend
-	var guard_pos: Vector2 = mark.position \
-		+ (my_hoop - mark.position).normalized() * 70.0
+	var guard_pos: Vector2 = mark.pos \
+		+ (my_hoop - mark.pos).normalized() * 70.0
 	if mark != ms.ball.holder:
 		# off-ball: shade toward the ball to clog the passing lane
-		guard_pos = guard_pos.lerp(ms.ball.position, 0.18)
+		guard_pos = guard_pos.lerp(ms.ball.pos, 0.18)
 	_seek(it, guard_pos, 12.0)
-	it.turbo = b.position.distance_to(guard_pos) > 260.0 and b.turbo_meter > 30.0
+	it.turbo = b.pos.distance_to(guard_pos) > 260.0 and b.turbo_meter > 30.0
 	if mark != ms.ball.holder:
 		return
-	var d: float = b.position.distance_to(mark.position)
+	var d: float = b.pos.distance_to(mark.pos)
 	if mark.state == Baller.State.JUMP and mark.charging_shot and d < 95.0:
 		# contest the shot
 		if ms.rng.randf() < float(diff.block_urge):
@@ -153,25 +153,25 @@ func _loose_ball(it: PlayerIntent, ms) -> void:
 	# (legal here!), everyone else crashes toward the scramble
 	if ms.ball.state == GameBall.State.SHOT:
 		var defended_hoop := CourtGeometry.hoop_pos(1 - b.team)
-		var ball_dist: float = b.position.distance_to(ms.ball.position)
+		var ball_dist: float = b.pos.distance_to(ms.ball.pos)
 		if (
 			ms.ball.shooter != null and ms.ball.shooter.team != b.team
-			and b.position.distance_to(defended_hoop) < 220.0
+			and b.pos.distance_to(defended_hoop) < 220.0
 			and ball_dist < 130.0 and ms.ball.z < 430.0
 			and ms.rng.randf() < float(team_ai.diff_params().block_urge) * 0.1
 		):
 			it.shoot_pressed = true
 			return
 	if team_ai.should_chase(b):
-		_seek(it, ms.ball.position, 4.0)
+		_seek(it, ms.ball.pos, 4.0)
 		it.turbo = b.turbo_meter > 20.0
 	else:
 		# hedge back toward our hoop while the scramble resolves
 		var my_hoop := CourtGeometry.hoop_pos(1 - b.team)
-		_seek(it, (ms.ball.position + my_hoop) * 0.5, 60.0)
+		_seek(it, (ms.ball.pos + my_hoop) * 0.5, 60.0)
 
 
 func _seek(it: PlayerIntent, target: Vector2, arrive_radius: float) -> void:
-	var to_target: Vector2 = target - baller.position
+	var to_target: Vector2 = target - baller.pos
 	if to_target.length() > arrive_radius:
 		it.move = to_target.normalized()

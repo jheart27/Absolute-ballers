@@ -1,16 +1,17 @@
 class_name MatchCamera
 extends Camera2D
 ## Arcade framing for up to 10 ballers + ball: fit everyone in view, weight
-## the center toward the ball, clamp to the court art, and never zoom out
-## past the sprite-readability floor. This is the "camera is a core design
-## problem" answer: MIN_ZOOM guarantees a 64px sprite never renders below
-## ~40px, and the court art extends far enough (2048x1280) that max zoom-out
-## still shows arena, not void.
+## the center toward the ball, clamp to the arena art, and never zoom out
+## past the sprite-readability floor. MIN_ZOOM guarantees a 96px sprite
+## never renders below ~67px, and the projected arena art (court +
+## parallax crowd) covers the whole reachable view.
 
-const MIN_ZOOM := 0.63  # readability floor; also keeps view inside the art
-const MAX_ZOOM := 1.05
-const PAD := 170.0
-const ART_HALF := Vector2(1024.0, 640.0)
+const MIN_ZOOM := 0.7  # readability floor; also keeps view inside the art
+const MAX_ZOOM := 1.0
+const PAD := 190.0
+const X_LIMIT := 1140.0  # horizontal art extent
+const TOP_LIMIT := -760.0  # crowd covers up to here
+const BOTTOM_LIMIT := 300.0  # front skirt covers down to here
 
 var match_scene = null
 var _shake := 0.0
@@ -44,10 +45,13 @@ func _process(delta: float) -> void:
 	var ball_screen := Vector2(ball.position.x, ball.position.y - ball.z * 0.5)
 	var target := centroid.lerp(ball_screen, 0.45)
 	var half_view := vp * 0.5 / k
-	target.x = clampf(target.x, -ART_HALF.x + half_view.x, ART_HALF.x - half_view.x) \
-		if half_view.x < ART_HALF.x else 0.0
-	target.y = clampf(target.y, -ART_HALF.y + half_view.y, ART_HALF.y - half_view.y) \
-		if half_view.y < ART_HALF.y else 0.0
+	target.x = clampf(target.x, -X_LIMIT + half_view.x, X_LIMIT - half_view.x) \
+		if half_view.x < X_LIMIT else 0.0
+	if TOP_LIMIT + half_view.y < BOTTOM_LIMIT - half_view.y:
+		target.y = clampf(
+			target.y, TOP_LIMIT + half_view.y, BOTTOM_LIMIT - half_view.y)
+	else:
+		target.y = (TOP_LIMIT + BOTTOM_LIMIT) * 0.5
 
 	position = position.lerp(target, 1.0 - exp(-6.0 * delta))
 	var kz := lerpf(zoom.x, k, 1.0 - exp(-3.5 * delta))

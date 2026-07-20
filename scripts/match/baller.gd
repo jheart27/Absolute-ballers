@@ -8,11 +8,11 @@ extends Node2D
 
 enum State { IDLE, RUN, JUMP, DUNK, STEAL, HURT, CELEBRATE }
 
-const TURBO_MULT := 1.4
+const TURBO_MULT := 1.3
 const TURBO_DRAIN := 34.0
 const TURBO_REGEN := 18.0
 const JUMP_IMPULSE := 560.0
-const AIR_DRIFT := 70.0
+const AIR_DRIFT := 60.0
 const STEAL_RANGE := 84.0
 const STEAL_DURATION := 0.38
 const HURT_DURATION := 1.0
@@ -23,6 +23,7 @@ var team := 0
 var match_scene = null  # MatchScene (untyped: cyclic reference)
 
 # --- simulation state -------------------------------------------------------
+var pos := Vector2.ZERO  # flat floor coords; node position is the projection
 var z := 0.0
 var zvel := 0.0
 var vel := Vector2.ZERO
@@ -66,7 +67,7 @@ func has_ball() -> bool:
 
 
 func run_speed() -> float:
-	return 300.0 + char_def.speed * 8.0 + (60.0 if on_fire else 0.0)
+	return 260.0 + char_def.speed * 7.0 + (55.0 if on_fire else 0.0)
 
 
 func shot_quality() -> float:
@@ -96,6 +97,7 @@ func sim(delta: float) -> void:
 				_enter(State.IDLE)
 	if not (intent.turbo and vel.length() > 10.0):
 		turbo_meter = minf(100.0, turbo_meter + TURBO_REGEN * delta)
+	position = CourtGeometry.project(pos)
 
 
 func _sim_ground(delta: float) -> void:
@@ -109,11 +111,11 @@ func _sim_ground(delta: float) -> void:
 		if not on_fire:
 			turbo_meter = maxf(0.0, turbo_meter - TURBO_DRAIN * delta)
 	vel = mv * speed
-	position = CourtGeometry.clamp_to_floor(position + vel * delta)
+	pos = CourtGeometry.clamp_to_floor(pos + vel * delta)
 	if absf(mv.x) > 0.1:
 		facing = 1 if mv.x > 0.0 else -1
 	elif has_ball():
-		facing = 1 if CourtGeometry.hoop_pos(team).x > position.x else -1
+		facing = 1 if CourtGeometry.hoop_pos(team).x > pos.x else -1
 	_enter(State.RUN if mv.length() > 0.1 else State.IDLE)
 	if stagger_t > 0.0:
 		return
@@ -143,7 +145,7 @@ func _start_jump(shooting: bool) -> void:
 func _sim_jump(delta: float) -> void:
 	vel = vel.move_toward(Vector2.ZERO, 300.0 * delta)
 	var drift := intent.move.limit_length(1.0) * AIR_DRIFT
-	position = CourtGeometry.clamp_to_floor(position + (vel + drift) * delta)
+	pos = CourtGeometry.clamp_to_floor(pos + (vel + drift) * delta)
 	zvel -= CourtGeometry.GRAVITY * delta
 	z += zvel * delta
 	if charging_shot and (intent.shoot_released or (zvel < 0.0 and z < 30.0)):
@@ -161,21 +163,21 @@ func _sim_jump(delta: float) -> void:
 
 func _dunk_available() -> bool:
 	var reach := 150.0 + char_def.dunk * 12.0 + (90.0 if on_fire else 0.0)
-	return position.distance_to(CourtGeometry.hoop_pos(team)) < reach
+	return pos.distance_to(CourtGeometry.hoop_pos(team)) < reach
 
 
 func _start_dunk() -> void:
 	var hoop := CourtGeometry.hoop_pos(team)
-	dunk_from = position
+	dunk_from = pos
 	dunk_target = hoop + Vector2(-28.0 * signf(hoop.x), 0.0)
-	dunk_duration = clampf(dunk_from.distance_to(dunk_target) / 420.0, 0.45, 0.8)
-	facing = 1 if dunk_target.x > position.x else -1
+	dunk_duration = clampf(dunk_from.distance_to(dunk_target) / 380.0, 0.5, 0.85)
+	facing = 1 if dunk_target.x > pos.x else -1
 	_enter(State.DUNK)
 
 
 func _sim_dunk(_delta: float) -> void:
 	var t := clampf(state_t / dunk_duration, 0.0, 1.0)
-	position = dunk_from.lerp(dunk_target, t)
+	pos = dunk_from.lerp(dunk_target, t)
 	z = (CourtGeometry.RIM_HEIGHT + 30.0) * sin(t * PI * 0.5)
 	if t >= 1.0:
 		match_scene.complete_dunk(self)
@@ -193,11 +195,11 @@ func _attempt_steal() -> void:
 		victim == null
 		or victim.team == team
 		or victim.state != State.IDLE and victim.state != State.RUN
-		or position.distance_to(victim.position) > STEAL_RANGE
+		or pos.distance_to(victim.pos) > STEAL_RANGE
 	):
 		stagger_t = 0.35  # whiffed swipe
 		return
-	facing = 1 if victim.position.x > position.x else -1
+	facing = 1 if victim.pos.x > pos.x else -1
 	var shove: bool = intent.turbo
 	var chance: float = 0.30 + char_def.steal * 0.045 - victim.char_def.power * 0.02
 	if shove:
@@ -207,15 +209,15 @@ func _attempt_steal() -> void:
 	if match_scene.rng.randf() < clampf(chance, 0.05, 0.85):
 		if shove:
 			victim.knock_down()
-		ball.poke_loose((position.direction_to(victim.position) + Vector2(0.0, 0.3)).normalized())
+		ball.poke_loose((pos.direction_to(victim.pos) + Vector2(0.0, 0.3)).normalized())
 		EventBus.steal_made.emit(self, victim)
 	else:
 		stagger_t = 0.55
 
 
 func _sim_steal(delta: float) -> void:
-	position = CourtGeometry.clamp_to_floor(
-		position + Vector2(facing * 140.0, 0.0) * delta)
+	pos = CourtGeometry.clamp_to_floor(
+		pos + Vector2(facing * 120.0, 0.0) * delta)
 	if state_t >= STEAL_DURATION:
 		_enter(State.IDLE)
 
@@ -237,7 +239,8 @@ func celebrate() -> void:
 
 
 func reset_for_tip(p: Vector2) -> void:
-	position = p
+	pos = p
+	position = CourtGeometry.project(pos)
 	z = 0.0
 	zvel = 0.0
 	vel = Vector2.ZERO
@@ -246,7 +249,7 @@ func reset_for_tip(p: Vector2) -> void:
 	post_dunk = false
 	state = State.IDLE
 	state_t = 0.0
-	facing = 1 if CourtGeometry.hoop_pos(team).x > position.x else -1
+	facing = 1 if CourtGeometry.hoop_pos(team).x > pos.x else -1
 
 
 func _enter(s: int) -> void:

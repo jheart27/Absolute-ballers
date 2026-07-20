@@ -47,9 +47,13 @@ func _load_streams() -> void:
 			continue
 		var sfx_name := fname.trim_suffix(".wav")
 		if sfx_name == "crowd_loop" and stream is AudioStreamWAV:
-			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			stream.loop_begin = 0
-			stream.loop_end = stream.data.size() / 2  # 16-bit mono frames
+			# explicit cast: loop_* only exist on AudioStreamWAV, and the
+			# analyzer checks property access on the declared type
+			var wav := stream as AudioStreamWAV
+			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			wav.loop_begin = 0
+			@warning_ignore("integer_division")
+			wav.loop_end = wav.data.size() / 2  # 16-bit mono frames
 		_streams[sfx_name] = stream
 
 

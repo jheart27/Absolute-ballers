@@ -18,7 +18,7 @@ static func resolve(shooter, quality: float, match_scene) -> Dictionary:
 			pressure = maxf(pressure, (110.0 - dd) / 110.0 * 0.25)
 		# a defender in the air next to the shooter is a live block window
 		if d.state == Baller.State.JUMP and dd < 95.0 and d.z > 40.0:
-			var block_chance := 0.30 + d.char_def.block * 0.05 \
+			var block_chance: float = 0.30 + d.char_def.block * 0.05 \
 				- (0.15 if shooter.on_fire else 0.0)
 			if rng.randf() < block_chance:
 				return {"blocked": true, "blocker": d}

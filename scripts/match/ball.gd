@@ -215,7 +215,7 @@ func _sim_pass(delta: float) -> void:
 				give_to(opp)
 				EventBus.steal_made.emit(opp, null)
 				return
-	var to_target := pass_receiver.position - position
+	var to_target: Vector2 = pass_receiver.position - position
 	var step := PASS_SPEED * delta
 	if to_target.length() <= step:
 		if pass_receiver.state == Baller.State.HURT:

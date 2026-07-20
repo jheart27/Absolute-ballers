@@ -60,7 +60,7 @@ func setup(b, team_col: Color) -> void:
 
 
 func _process(_delta: float) -> void:
-	var zoff := -SPRITE_FEET_OFFSET - baller.z
+	var zoff: float = -SPRITE_FEET_OFFSET - baller.z
 	_sprite.position = Vector2(0.0, zoff)
 	_sprite.flip_h = baller.facing < 0
 	_aura.position = Vector2(0.0, zoff - 6.0)
@@ -112,7 +112,7 @@ func _draw() -> void:
 	if baller.charging_shot:
 		var q: float = baller.shot_quality()
 		var w := 44.0
-		var y := -SPRITE_FEET_OFFSET - baller.z - 60.0
+		var y: float = -SPRITE_FEET_OFFSET - baller.z - 60.0
 		draw_rect(Rect2(-w * 0.5, y, w, 7.0), Color(0.0, 0.0, 0.0, 0.65))
 		draw_rect(
 			Rect2(-w * 0.5 + 1.0, y + 1.0, (w - 2.0) * q, 5.0),

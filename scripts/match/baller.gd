@@ -199,7 +199,7 @@ func _attempt_steal() -> void:
 		return
 	facing = 1 if victim.position.x > position.x else -1
 	var shove: bool = intent.turbo
-	var chance := 0.30 + char_def.steal * 0.045 - victim.char_def.power * 0.02
+	var chance: float = 0.30 + char_def.steal * 0.045 - victim.char_def.power * 0.02
 	if shove:
 		chance += 0.15
 	if victim.on_fire:

@@ -94,16 +94,16 @@ func _entry_name(t: TournamentState, i: int) -> String:
 	return "%s%s" % [short, "(YOU)" if t.entries[i].is_player else ""]
 
 
-func _label(text: String, size: int, color: Color) -> Label:
+func _label(text: String, font_size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
 	return l
 
 
-func _center_label(text: String, size: int, color: Color) -> Label:
-	var l := _label(text, size, color)
+func _center_label(text: String, font_size: int, color: Color) -> Label:
+	var l := _label(text, font_size, color)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
 

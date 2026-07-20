@@ -130,16 +130,6 @@ func _build_court() -> void:
 	var floor_sprite := Sprite2D.new()
 	floor_sprite.texture = Art.tex("res://assets/placeholder/court/court_full.png")
 	add_child(floor_sprite)
-
-
-func _process(_delta: float) -> void:
-	# parallax: the crowd tracks a fraction of the camera motion so it reads
-	# as far away (screen speed = CROWD_PARALLAX * normal)
-	if cam == null or _crowd == null:
-		return
-	_crowd.position = _crowd_base + Vector2(
-		cam.position.x * (1.0 - CROWD_PARALLAX.x),
-		cam.position.y * (1.0 - CROWD_PARALLAX.y))
 	_stage = Node2D.new()
 	_stage.name = "Stage"
 	_stage.y_sort_enabled = true
@@ -152,6 +142,16 @@ func _process(_delta: float) -> void:
 	ball = GameBall.new()
 	_stage.add_child(ball)
 	ball.setup(self)
+
+
+func _process(_delta: float) -> void:
+	# parallax: the crowd tracks a fraction of the camera motion so it reads
+	# as far away (screen speed = CROWD_PARALLAX * normal)
+	if cam == null or _crowd == null:
+		return
+	_crowd.position = _crowd_base + Vector2(
+		cam.position.x * (1.0 - CROWD_PARALLAX.x),
+		cam.position.y * (1.0 - CROWD_PARALLAX.y))
 
 
 func _build_teams() -> void:

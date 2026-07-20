@@ -19,6 +19,7 @@ const HELP_LINES: Array = [
 ]
 
 var _panel: Control  # the active submenu overlay, or null
+var _root_col: CenterContainer  # the main list, hidden while a panel is open
 
 
 func _ready() -> void:
@@ -154,19 +155,20 @@ func _open_help() -> void:
 
 # ----------------------------------------------------------------- panel utils
 func _menu_column() -> VBoxContainer:
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	_root_col = CenterContainer.new()
+	_root_col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_root_col)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(v)
+	_root_col.add_child(v)
 	return v
 
 
-func _open_panel(heading: String, dim_alpha := 0.9) -> VBoxContainer:
+func _open_panel(heading: String, dim_alpha := 1.0) -> VBoxContainer:
 	if _panel != null and is_instance_valid(_panel):
 		_panel.queue_free()
+	_root_col.visible = false  # hide the main list so nothing shows through
 	_panel = Control.new()
 	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_panel)
@@ -192,7 +194,8 @@ func _back_button(v: VBoxContainer) -> void:
 	var b := _button(v, "BACK", func() -> void:
 		Game.save_settings()
 		_panel.queue_free()
-		_panel = null)
+		_panel = null
+		_root_col.visible = true)
 	b.grab_focus()
 
 
@@ -219,10 +222,10 @@ func _button(parent: Control, text: String, callback: Callable) -> Button:
 	return b
 
 
-func _text(s: String, size: int, color: Color) -> Label:
+func _text(s: String, font_size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = s
-	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
 	return l
 

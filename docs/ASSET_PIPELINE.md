@@ -1,67 +1,107 @@
-# Asset pipeline — swapping in final art
+# Asset pipeline
 
-All current art is programmer art from `tools/generate_placeholders.py`.
-Final AI-generated pixel art replaces files 1:1; nothing in gameplay code
-references an art path (paths live in `data/characters/*.tres`, layout in
-`scripts/match/baller_anim.gd`).
+Nothing in gameplay code references an art path: character sheet paths live
+in `data/characters/*.tres`, and the sheet layout lives in one generated
+script, `scripts/match/baller_sheet.gd`.
 
-## Character sheet contract (the important one)
+## The girls: baked from the chibi rig
 
-- PNG with alpha, **6 columns x 9 rows of 96x96 frames** (576x864 total).
-- Character faces **RIGHT** (the game flips for left). Feet touch **y=88**
-  inside each frame.
-- Rows in fixed order, with fixed frame counts (unused cells transparent):
+The characters, the ball and the fire aura are **baked** from the chibi rig
+(see [ART_DIRECTION.md](ART_DIRECTION.md)). One command rebuilds them all,
+together with the layout contract the game reads:
 
-| row | animation | frames | loops |
-|----:|-----------|-------:|-------|
-| 0 | idle | 4 | yes |
-| 1 | run | 6 | yes |
-| 2 | dribble | 6 | yes |
-| 3 | jump_shot | 4 | no |
-| 4 | dunk | 6 | no |
-| 5 | block | 4 | no |
-| 6 | steal | 4 | no |
-| 7 | hurt | 4 | no |
-| 8 | celebrate | 4 | yes |
+```
+python3 -m tools.chibi_rig bake            # all girls (~1 min, needs Pillow + numpy)
+python3 -m tools.chibi_rig bake aki rei    # just some
+```
 
-FPS per row is code-side in `BallerAnim.ROWS` (tweak freely). If final art
-needs a different frame size or counts, change the single table in
-`BallerAnim` — every sheet must then follow the new contract.
+It writes:
 
-To add a **new baller**: drop `name.png` following the contract anywhere
-under `assets/`, copy any `data/characters/*.tres`, edit id/name/stats/
-`sprite_sheet` path. Done — she appears in the lobby pool.
+| File | What |
+|---|---|
+| `assets/characters/<id>.png` | the girl, with her team kit painted **black** |
+| `assets/characters/<id>_kit.png` | the kit alone, same layout: rgb = gray shading, alpha = coverage |
+| `assets/fx/fire_aura.png` | on-fire flicker strip (frames the size of a character frame, same feet point) |
+| `assets/fx/ball.png` | ball spin strip (square frames) |
+| `scripts/match/baller_sheet.gd` | **GENERATED** contract: frame size, feet point, rows, timing, ball anchors |
+| `docs/art/game_sprites.png` | preview of the sheets exactly as the game draws them |
 
-## Other art, all placeholder-replaceable in place
+The bake also checks that no art touches a frame edge, and that the kit
+separation is exact. It prints the worst error, which should be about 1–2/255.
 
-- `fx/fire_aura.png` — 4 frames of 96x96, drawn behind the sprite.
-- `fx/ball.png` — 4 frames of 16x16 (rendered at 2x).
-- `fx/ring.png`, `fx/arrow.png`, `fx/shadow.png` — tinted at runtime.
-- `court/court_full.png` — 2304x1024, painted through the low-angle
+### Team colors
+
+Every girl keeps her own hair, eyes, skin and accessories, while the uniform
+takes the team color. `scripts/match/baller_kit.gdshader` adds
+`kit gray x team color` on top of the black kit. Because compositing is
+linear in the kit color, that equals rendering the kit in the team color,
+anti-aliased edges included. The bake gets the two layers by rendering each
+frame three times (kit in black, white and gray). Accessories drawn in kit
+colors (Aki's scrunchie, Kaede's bow, Miko's headband, Yumi's and Rei's
+ribbons) pick up the team color too. When both teams' colors are too alike,
+`MatchScene` puts the away side in light "away whites" of its color.
+
+### The contract (generated, never hand-edited)
+
+- 176x200 frames, 8 columns, one row per animation. The girl faces **RIGHT**,
+  and her feet are at `BallerSheet.FEET` (88, 188). Sprites use that point as
+  their origin, so depth scaling and `flip_h` happen around where she stands.
+- Rows: `idle, run, dribble, hold, jump_shot, dunk, block, steal, hurt, celebrate`.
+- **Loops** (`fps > 0`) play on their own. **One-shots** (`fps 0`) are
+  scrubbed by `BallerVisual` from the sim's clocks: frame `i` is the move at
+  time `times[i]`, and `mark` is the moment the sim syncs to. The jump shot
+  reaches its set point at the jump apex, and the dunk's slam frame lands
+  as the sim scores. `Baller` aims the dunk with the slam frame's ball anchor,
+  so the ball goes into the rim.
+- `ball` lists the ball center per frame (offset from the feet), or `null`
+  when it isn't in her hand. `GameBall` draws the held ball there, so it
+  always meets the hand that's drawn. Dribble sounds fire when that ball
+  touches the floor.
+
+### Adding a girl
+
+1. Add her to `CAST` in `tools/chibi_rig/cast.py` (see ART_DIRECTION.md).
+2. `python3 -m tools.chibi_rig bake <id>`
+3. Copy any `data/characters/*.tres`, then set the id, name, stats,
+   `sprite_sheet` and `kit_sheet`. She appears in the lobby pool.
+
+Changing moves, timing or frame counts happens in the rig (`poses.py`, plus
+`ANIMS` in `bake.py`). Re-bake, and the game follows through `BallerSheet`.
+
+## Arena art: placeholders, replaceable in place
+
+`python3 tools/generate_placeholders.py` (Pillow) regenerates these files:
+
+- `assets/placeholder/fx/ring.png`, `arrow.png`, `shadow.png`: tinted at runtime.
+- `court/court_full.png`: 2304x1024, painted through the low-angle
   **projection** in `CourtGeometry` (DEPTH_SCALE / X_SCALE_FAR/NEAR). The
   sim stays in flat floor coords (x∈[-880,880], y∈[-260,260], rims at
-  x=±780); rendering projects them. If you change the projection constants,
-  change them in `tools/generate_placeholders.py` too and regenerate.
-- `court/crowd.png` — 2304x900 parallax layer drawn *behind* the court and
-  scrolled slower by MatchScene (CROWD_PARALLAX) for depth. Bottom edge =
+  x=±780), and rendering projects them. If you change the projection
+  constants, change them in `tools/generate_placeholders.py` too and
+  regenerate.
+- `court/crowd.png`: 2304x900 parallax layer, drawn *behind* the court and
+  scrolled slower by MatchScene (CROWD_PARALLAX) for depth. Its bottom edge is
   the arena wall/banners that meet the far sideline.
-- `court/hoop.png` — 192x480 perspective hoop, drawn as the LEFT hoop (rim
-  reaching right); rim center at pixel (128,180), floor at y=480
-  (`Hoop.RIM_PX` if it moves).
+- `court/hoop.png`: 192x480 perspective hoop, drawn as the LEFT hoop (rim
+  reaching right). The rim center is at pixel (128,180) and the floor at
+  y=480 (`Hoop.RIM_PX` if it moves).
 
-Godot import: project defaults to nearest-neighbor filtering; first editor
-open generates `.import` files — commit them.
+Godot import and filtering: the project default is nearest-neighbor, for the
+pixel-art arena. The baked girls, ball and aura are smooth illustration, so
+their nodes set `TEXTURE_FILTER_LINEAR`. The first editor open generates the
+`.import` files. `tools/` and `docs/` each hold a `.gdignore`, so the editor
+doesn't import tooling or preview images.
 
 ## Audio
 
 `tools/generate_audio.py` produces procedural placeholder SFX in
-`assets/placeholder/audio/`. **Filenames are the contract** — AudioManager
-loads by basename, so final sound design replaces the WAVs 1:1:
+`assets/placeholder/audio/`. **Filenames are the contract.** AudioManager
+loads sounds by basename, so final sound design replaces the WAVs 1:1:
 
 bounce, dribble, swish, rim_clank, slam, block, steal, whoosh, pass,
 buzzer, fire_ignite, knockdown, click, cheer, crowd_loop (looped ambient
 bed; loop points are set in code).
 
-Any format Godot imports as an AudioStream works (.wav/.ogg — if you switch
-to .ogg, update the extension filter in `audio_manager.gd`). Missing files
-degrade to silence with a warning, never a crash.
+Any format Godot imports as an AudioStream works (.wav/.ogg; if you switch
+to .ogg, update the extension filter in `audio_manager.gd`). A missing file
+degrades to silence with a warning, never a crash.

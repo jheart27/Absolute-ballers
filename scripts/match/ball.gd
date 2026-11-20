@@ -38,10 +38,15 @@ var _pass_rolled: Array = []  # opponents who already had their interception rol
 var _swat_rolled: Array = []  # defenders who already had their goaltend roll
 
 var _spin_t := 0.0
-var _held_prev_z := 0.0
+var _was_low := false  # held ball touching the floor last frame (dribble sfx)
 var _sprite: AnimatedSprite2D
 var _shadow: Sprite2D
 var _embers: CPUParticles2D
+
+# where the art holds the ball (from the baked BallerSheet anchors)
+var _hold_dx := 26.0  # stationary dribble, ahead of her feet
+var _shot_dx := 30.0  # set point of the jump shot
+var _shot_z := 106.0  # ball bottom above her feet at the set point
 
 
 func setup(match_ref) -> void:
@@ -66,16 +71,40 @@ func setup(match_ref) -> void:
 	_embers.color = Color(1.0, 0.55, 0.1, 0.85)
 	add_child(_embers)
 	_sprite = AnimatedSprite2D.new()
-	_sprite.sprite_frames = BallerAnim.build_simple_strip(
-		"res://assets/placeholder/fx/ball.png", 16, 12.0)
-	_sprite.scale = Vector2(2.0, 2.0)
+	_sprite.sprite_frames = BallerAnim.build_simple_strip("res://assets/fx/ball.png", 0, 12.0)
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_sprite.play("loop")
 	add_child(_sprite)
+	var hold_off: Variant = BallerAnim.ball_offset("hold", 0)
+	if hold_off != null:
+		var h: Vector2 = hold_off
+		_hold_dx = h.x
+	var shot_off: Variant = BallerAnim.ball_offset(
+		"jump_shot", BallerAnim.frame_at("jump_shot", BallerAnim.mark("jump_shot")))
+	if shot_off != null:
+		var s: Vector2 = shot_off
+		_shot_dx = s.x
+		_shot_z = -s.y - BallerSheet.BALL_RADIUS
 
 
 func _process(_delta: float) -> void:
-	_sprite.position = Vector2(0.0, -z - 12.0)
-	_shadow.scale = Vector2.ONE * lerpf(0.6, 0.35, clampf(z / 300.0, 0.0, 1.0))
+	var height := z
+	var anchor: Variant = null
+	if state == State.HELD and holder != null and holder.visual != null:
+		anchor = holder.visual.ball_anchor()
+	if anchor != null:
+		# in her hand: sit exactly where this frame of her animation holds it
+		var a: Vector2 = anchor
+		_sprite.position = holder.position + a - position
+		height = maxf(0.0, -a.y - BallerSheet.BALL_RADIUS)
+		var low: bool = height < 8.0
+		if low and not _was_low:
+			AudioManager.play("dribble", -16.0)
+		_was_low = low
+	else:
+		_sprite.position = Vector2(0.0, -z - BallerSheet.BALL_RADIUS)
+		_was_low = false
+	_shadow.scale = Vector2.ONE * lerpf(0.6, 0.35, clampf(height / 300.0, 0.0, 1.0))
 	_sprite.speed_scale = 2.0 if state == State.SHOT or state == State.PASS else 1.0
 	# she's on fire -> so is the ball
 	var hot: bool = (
@@ -108,16 +137,16 @@ func _sim_held() -> void:
 		var rng: RandomNumberGenerator = match_scene.rng
 		poke_loose(Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.0, 1.0)).normalized())
 		return
-	pos = holder.pos + Vector2(holder.facing * 18.0, 2.0)
-	if holder.z > 0.0:
-		z = holder.z + 48.0
+	# Sim-side position of a held ball (where passes and shots leave from).
+	# What's drawn follows her hand frame by frame; see _process.
+	pos = holder.pos + Vector2(holder.facing * _hold_dx, 2.0)
+	if holder.z > 0.0:  # up at the set point, so shots leave from her hand
+		pos.x = holder.pos.x + holder.facing * _shot_dx
+		z = holder.z + _shot_z
 	elif holder.vel.length() > 20.0:
-		z = absf(sin(_spin_t * 9.0)) * 40.0 + 10.0  # hard dribble on the move
+		z = absf(sin(_spin_t * 9.0)) * 26.0 + 6.0  # hard dribble on the move
 	else:
-		z = absf(sin(_spin_t * 5.0)) * 26.0 + 10.0
-	if z < 14.0 and _held_prev_z >= 14.0 and holder.z <= 0.0:
-		AudioManager.play("dribble", -16.0)
-	_held_prev_z = z
+		z = absf(sin(_spin_t * 5.0)) * 20.0 + 6.0
 
 
 func give_to(baller) -> void:

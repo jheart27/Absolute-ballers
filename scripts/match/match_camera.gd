@@ -2,9 +2,10 @@ class_name MatchCamera
 extends Camera2D
 ## Arcade framing for up to 10 ballers + ball: fit everyone in view, weight
 ## the center toward the ball, clamp to the arena art, and never zoom out
-## past the sprite-readability floor. MIN_ZOOM guarantees a 96px sprite
-## never renders below ~67px, and the projected arena art (court +
-## parallax crowd) covers the whole reachable view.
+## past the sprite-readability floor. MIN_ZOOM keeps a ~160px girl at 110px
+## or more on screen, and the projected arena art (court + parallax crowd)
+## covers the whole reachable view. Points are feet positions, so the top
+## pad leaves room for the art above them (BallerSheet: ~186px) + shot arcs.
 
 const MIN_ZOOM := 0.7  # readability floor; also keeps view inside the art
 const MAX_ZOOM := 1.0

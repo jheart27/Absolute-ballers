@@ -38,6 +38,7 @@ var post_dunk := false  # falling from the rim, keep the dunk pose
 var dunk_from := Vector2.ZERO
 var dunk_target := Vector2.ZERO
 var dunk_duration := 0.6
+var dunk_peak := 300.0  # feet height at the slam (puts the ball in the rim)
 
 # --- control ----------------------------------------------------------------
 var controller = null  # active intent source (HumanInput or AIInput)
@@ -168,17 +169,31 @@ func _dunk_available() -> bool:
 
 func _start_dunk() -> void:
 	var hoop := CourtGeometry.hoop_pos(team)
+	# The baked art says where her hand holds the ball at the slam frame;
+	# aim her feet so that ball lands in the rim.
+	var slam := _slam_offset()
 	dunk_from = pos
-	dunk_target = hoop + Vector2(-28.0 * signf(hoop.x), 0.0)
+	dunk_target = hoop + Vector2(-slam.x * signf(hoop.x), 0.0)
+	dunk_peak = CourtGeometry.RIM_HEIGHT + 4.0 + slam.y
 	dunk_duration = clampf(dunk_from.distance_to(dunk_target) / 380.0, 0.5, 0.85)
 	facing = 1 if dunk_target.x > pos.x else -1
 	_enter(State.DUNK)
 
 
+static func _slam_offset() -> Vector2:
+	## Ball center at the slam frame, relative to her feet (facing right).
+	var off: Variant = BallerAnim.ball_offset(
+		"dunk", BallerAnim.frame_at("dunk", BallerAnim.mark("dunk")))
+	if off == null:
+		return Vector2(28.0, -30.0)
+	var v: Vector2 = off
+	return v
+
+
 func _sim_dunk(_delta: float) -> void:
 	var t := clampf(state_t / dunk_duration, 0.0, 1.0)
 	pos = dunk_from.lerp(dunk_target, t)
-	z = (CourtGeometry.RIM_HEIGHT + 30.0) * sin(t * PI * 0.5)
+	z = dunk_peak * sin(t * PI * 0.5)
 	if t >= 1.0:
 		match_scene.complete_dunk(self)
 		post_dunk = true  # free-fall from the rim keeping the dunk pose

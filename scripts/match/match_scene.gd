@@ -154,18 +154,31 @@ func _process(_delta: float) -> void:
 		cam.position.y * (1.0 - CROWD_PARALLAX.y))
 
 
+func _kit_colors() -> Array:
+	## Uniform color per team. Kits are tinted at runtime (see
+	## baller_kit.gdshader), so when both primaries are too alike to tell
+	## apart the away side switches to light "away whites" of its color.
+	var home: Color = config.team_defs[0].primary_color
+	var away: Color = config.team_defs[1].primary_color
+	var gap := Vector3(home.r - away.r, home.g - away.g, home.b - away.b).length()
+	if gap < 0.35:
+		away = away.lerp(Color.WHITE, 0.72)
+	return [home, away]
+
+
 func _build_teams() -> void:
+	var kits := _kit_colors()
 	for t in 2:
 		var team_ai := TeamAI.new(t, config.ai_levels[t], self)
 		team_ais.append(team_ai)
-		var team_def: TeamDef = config.team_defs[t]
+		var kit: Color = kits[t]
 		for char_def in config.rosters[t]:
 			var b := Baller.new()
 			_stage.add_child(b)
 			b.setup(char_def, t, self)
 			var vis := BallerVisual.new()
 			b.add_child(vis)
-			vis.setup(b, team_def.primary_color)
+			vis.setup(b, kit)
 			b.visual = vis
 			b.ai_controller = AIInput.new(b, team_ai)
 			b.controller = b.ai_controller

@@ -100,6 +100,16 @@ scripts/
 tools/                generate_placeholders.py (regenerates all art)
 ```
 
+## Character art (chibi rig)
+
+The characters are being rebuilt as a code-driven **chibi cutout rig** (the
+Spine / gacha battle-sprite technique). See [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md)
+and the previews in [`docs/art/`](docs/art/). The in-game sprites are still the
+old placeholders until the rig output is baked into sprite sheets (next
+milestone).
+
+![The cast](docs/art/cast_roster.png)
+
 ## Placeholder art + audio pipeline
 
 `python3 tools/generate_placeholders.py` (needs Pillow) regenerates every
@@ -124,7 +134,11 @@ assets that follow them are drop-in replacements.
    full stat lines + hustle-weighted MVP, smarter defense (lane denial,
    rim protection, shot-clock panic), how-to-play screen, career record,
    restart option~~ ✅
-10. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
-    in `docs/ONLINE_MULTIPLAYER.md`; music pass + real sound design; real
-    art drop-in; polish (half-court side switch at halftime, injuries/
-    fatigue, unlockable ballers).
+10. ~~Low-angle court, parallax crowd, new menu, single-player flow~~ ✅
+11. ~~Chibi rig art direction: rig renderer, 5-girl cast, expression
+    library, move set~~ ✅ (`docs/ART_DIRECTION.md`)
+12. **Next:** bake the chibi rig into in-game sprite sheets, then a
+    gameplay/feel pass (defense is too soft: simulated games run 80–130 pts).
+13. Post-v1: **online multiplayer** via GodotSteam P2P — architecture notes
+    in `docs/ONLINE_MULTIPLAYER.md`; music pass + real sound design;
+    polish (half-court side switch at halftime, unlockable ballers).
